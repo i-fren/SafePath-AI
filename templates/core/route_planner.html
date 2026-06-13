@@ -1,0 +1,438 @@
+{% extends 'base.html' %}
+{% block title %}Route Planner{% endblock %}
+
+{% block extra_css %}
+<style>
+    .route-card {
+        border-left: 4px solid #ccc;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .route-card:hover { transform: translateX(5px); }
+    .route-card.safest { border-left-color: #10b981; }
+    .route-card.fastest { border-left-color: #3b82f6; }
+    .route-card.shortest { border-left-color: #f59e0b; }
+    .route-card.active { background-color: #f0fdf4; }
+    .score-bar {
+        height: 8px;
+        border-radius: 4px;
+        background: #e5e7eb;
+        overflow: hidden;
+    }
+    .score-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s;
+    }
+    .loading-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(255,255,255,0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        border-radius: 16px;
+    }
+    .loading-overlay.show { display: flex; }
+    #analysisPanel { display: none; }
+    .ai-explanation {
+        background: linear-gradient(135deg, #faf5ff, #fdf2f8);
+        border-radius: 12px;
+        padding: 16px;
+        border: 1px solid #e9d5ff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row g-4">
+        <!-- Left Panel - Search -->
+        <div class="col-lg-4">
+            <div class="card card-safety p-4">
+                <h4 class="fw-bold mb-4"><i class="bi bi-search"></i> Plan Your Route</h4>
+                
+                <form id="routeForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-geo-alt text-success"></i> Source Location
+                        </label>
+                        <input type="text" class="form-control" id="sourceInput" 
+                               placeholder="Click map or enter coordinates" required>
+                        <small class="text-muted">Format: lat, lng (e.g., 31.5497, 74.3436)</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-geo-alt-fill text-danger"></i> Destination
+                        </label>
+                        <input type="text" class="form-control" id="destInput" 
+                               placeholder="Click map or enter coordinates" required>
+                        <small class="text-muted">Format: lat, lng (e.g., 31.5200, 74.3500)</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-clock"></i> Travel Time
+                        </label>
+                        <select class="form-select" id="travelTime">
+                            <option value="day">🌞 Day Time (6 AM - 6 PM)</option>
+                            <option value="night">🌙 Night Time (6 PM - 6 AM)</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-safepath w-100 mb-3" id="analyzeBtn">
+                        <i class="bi bi-shield-check"></i> Analyze Safety
+                    </button>
+                    
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary flex-fill" id="useLocationBtn">
+                            <i class="bi bi-crosshair"></i> My Location
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary flex-fill" id="clearBtn">
+                            <i class="bi bi-x-circle"></i> Clear
+                        </button>
+                    </div>
+                </form>
+                
+                <hr>
+                
+                <div class="mb-2">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> 
+                        Click on the map to set source (1st click) and destination (2nd click)
+                    </small>
+                </div>
+
+                <!-- Map Legend -->
+                <div class="mt-3">
+                    <h6 class="fw-semibold">Map Legend</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-success"><i class="bi bi-circle-fill"></i> Safe Zones</span>
+                        <span class="badge bg-danger"><i class="bi bi-circle-fill"></i> Crime Hotspots</span>
+                        <span class="badge bg-primary"><i class="bi bi-circle-fill"></i> Fastest Route</span>
+                        <span class="badge bg-warning"><i class="bi bi-circle-fill"></i> Shortest Route</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel - Map & Results -->
+        <div class="col-lg-8">
+            <!-- Map -->
+            <div class="position-relative mb-4">
+                <div id="map"></div>
+                <div class="loading-overlay" id="loadingOverlay">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <p class="fw-semibold">Analyzing route safety...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Results -->
+            <div id="analysisPanel">
+                <h4 class="fw-bold mb-3"><i class="bi bi-graph-up"></i> Route Analysis Results</h4>
+                
+                <!-- Routes -->
+                <div id="routeResults" class="mb-4"></div>
+
+                <!-- AI Explanation -->
+                <div id="aiExplanation" class="ai-explanation mb-4"></div>
+
+                <!-- Safety Tips -->
+                <div class="card card-safety p-3" id="tipsPanel">
+                    <h6 class="fw-semibold"><i class="bi bi-lightbulb text-warning"></i> Safety Tips</h6>
+                    <ul id="safetyTipsList" class="mb-0 small"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Map initialization - centered on Lahore, Pakistan
+const map = L.map('map').setView([31.5497, 74.3436], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+
+let sourceMarker = null;
+let destMarker = null;
+let routeLayers = [];
+let clickCount = 0;
+
+// Custom icons
+const sourceIcon = L.divIcon({
+    className: 'custom-marker',
+    html: '<div style="background:#10b981;width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);"></div>',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+});
+
+const destIcon = L.divIcon({
+    className: 'custom-marker',
+    html: '<div style="background:#ef4444;width:24px;height:24px;border-radius:50%;border:3px solid white;box-shadow:0 2px 5px rgba(0,0,0,0.3);"></div>',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+});
+
+const safeZoneIcon = L.divIcon({
+    className: 'custom-marker',
+    html: '<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+});
+
+const crimeIcon = L.divIcon({
+    className: 'custom-marker',
+    html: '<div style="background:#dc2626;width:12px;height:12px;border-radius:50%;border:2px solid #fca5a5;opacity:0.7;"></div>',
+    iconSize: [12, 12],
+    iconAnchor: [6, 6]
+});
+
+// Load safe zones
+{% for zone in safe_zones %}
+L.marker([{{ zone.latitude }}, {{ zone.longitude }}], {icon: safeZoneIcon})
+    .addTo(map)
+    .bindPopup('<b>{{ zone.name }}</b><br>{{ zone.get_zone_type_display }}<br><small>{{ zone.operating_hours }}</small>');
+{% endfor %}
+
+// Load crime hotspots
+{% for crime in crime_reports %}
+L.marker([{{ crime.latitude }}, {{ crime.longitude }}], {icon: crimeIcon})
+    .addTo(map)
+    .bindPopup('<b>{{ crime.title }}</b><br>Type: {{ crime.get_crime_type_display }}<br>Severity: {{ crime.severity }}/4');
+{% endfor %}
+
+// Map click handler
+map.on('click', function(e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lng = e.latlng.lng.toFixed(6);
+    
+    if (clickCount % 2 === 0) {
+        // Set source
+        if (sourceMarker) map.removeLayer(sourceMarker);
+        sourceMarker = L.marker([lat, lng], {icon: sourceIcon}).addTo(map)
+            .bindPopup('Source').openPopup();
+        document.getElementById('sourceInput').value = `${lat}, ${lng}`;
+    } else {
+        // Set destination
+        if (destMarker) map.removeLayer(destMarker);
+        destMarker = L.marker([lat, lng], {icon: destIcon}).addTo(map)
+            .bindPopup('Destination').openPopup();
+        document.getElementById('destInput').value = `${lat}, ${lng}`;
+    }
+    clickCount++;
+});
+
+// Use current location
+document.getElementById('useLocationBtn').addEventListener('click', function() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            const lat = pos.coords.latitude.toFixed(6);
+            const lng = pos.coords.longitude.toFixed(6);
+            document.getElementById('sourceInput').value = `${lat}, ${lng}`;
+            if (sourceMarker) map.removeLayer(sourceMarker);
+            sourceMarker = L.marker([lat, lng], {icon: sourceIcon}).addTo(map)
+                .bindPopup('Your Location').openPopup();
+            map.setView([lat, lng], 14);
+        }, function() {
+            alert('Unable to get your location. Please enter manually.');
+        });
+    }
+});
+
+// Clear
+document.getElementById('clearBtn').addEventListener('click', function() {
+    document.getElementById('sourceInput').value = '';
+    document.getElementById('destInput').value = '';
+    if (sourceMarker) map.removeLayer(sourceMarker);
+    if (destMarker) map.removeLayer(destMarker);
+    routeLayers.forEach(l => map.removeLayer(l));
+    routeLayers = [];
+    clickCount = 0;
+    document.getElementById('analysisPanel').style.display = 'none';
+});
+
+// Parse coordinates
+function parseCoords(str) {
+    const parts = str.split(',').map(s => parseFloat(s.trim()));
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        return { lat: parts[0], lng: parts[1] };
+    }
+    return null;
+}
+
+// Form submit
+document.getElementById('routeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const source = parseCoords(document.getElementById('sourceInput').value);
+    const dest = parseCoords(document.getElementById('destInput').value);
+    
+    if (!source || !dest) {
+        alert('Please enter valid coordinates (lat, lng format). Click on the map to set points.');
+        return;
+    }
+    
+    const travelTime = document.getElementById('travelTime').value;
+    
+    // Show loading
+    document.getElementById('loadingOverlay').classList.add('show');
+    document.getElementById('analyzeBtn').disabled = true;
+    
+    try {
+        const response = await fetch('/api/analyze-route/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+                source_lat: source.lat,
+                source_lng: source.lng,
+                dest_lat: dest.lat,
+                dest_lng: dest.lng,
+                travel_time: travelTime,
+            })
+        });
+        
+        const data = await response.json();
+        displayResults(data);
+    } catch (error) {
+        alert('Error analyzing route. Please try again.');
+        console.error(error);
+    } finally {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('analyzeBtn').disabled = false;
+    }
+});
+
+function displayResults(data) {
+    // Clear previous routes
+    routeLayers.forEach(l => map.removeLayer(l));
+    routeLayers = [];
+    
+    const routeColors = {
+        'safest': '#10b981',
+        'fastest': '#3b82f6',
+        'shortest': '#f59e0b'
+    };
+    
+    let routeHTML = '<div class="row g-3">';
+    
+    data.routes.forEach((route, idx) => {
+        // Draw route on map
+        const latlngs = route.points.map(p => [p.lat, p.lng]);
+        const polyline = L.polyline(latlngs, {
+            color: routeColors[route.type] || '#666',
+            weight: route.recommended ? 6 : 4,
+            opacity: route.recommended ? 1 : 0.7,
+            dashArray: route.recommended ? null : '10 5'
+        }).addTo(map);
+        routeLayers.push(polyline);
+        
+        // Score color
+        const scoreClass = route.scores.overall >= 70 ? 'score-high' : 
+                          route.scores.overall >= 45 ? 'score-medium' : 'score-low';
+        
+        const scoreBarColor = route.scores.overall >= 70 ? '#10b981' : 
+                             route.scores.overall >= 45 ? '#f59e0b' : '#ef4444';
+        
+        routeHTML += `
+            <div class="col-md-4">
+                <div class="card card-safety route-card ${route.type} p-3 ${route.recommended ? 'active' : ''}" 
+                     onclick="highlightRoute(${idx})">
+                    ${route.recommended ? '<span class="badge bg-success mb-2">★ Recommended</span>' : ''}
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="score-badge ${scoreClass} me-3">${Math.round(route.scores.overall)}</div>
+                        <div>
+                            <h6 class="mb-0">${route.label}</h6>
+                            <small class="text-muted">${route.distance_km} km · ${route.duration_min} min</small>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Crime Safety</small><small>${Math.round(route.scores.crime)}%</small>
+                        </div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.crime}%;background:${scoreBarColor}"></div></div>
+                        
+                        <div class="d-flex justify-content-between mb-1 mt-2">
+                            <small>Lighting</small><small>${Math.round(route.scores.lighting)}%</small>
+                        </div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.lighting}%;background:${scoreBarColor}"></div></div>
+                        
+                        <div class="d-flex justify-content-between mb-1 mt-2">
+                            <small>Crowd Density</small><small>${Math.round(route.scores.crowd)}%</small>
+                        </div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.crowd}%;background:${scoreBarColor}"></div></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    routeHTML += '</div>';
+    document.getElementById('routeResults').innerHTML = routeHTML;
+    
+    // AI Explanation
+    const bestRoute = data.routes[0];
+    document.getElementById('aiExplanation').innerHTML = `
+        <h6 class="fw-semibold"><i class="bi bi-robot"></i> AI Safety Analysis</h6>
+        <p class="mb-0">${bestRoute.explanation}</p>
+    `;
+    
+    // Safety Tips
+    let tipsHTML = '';
+    data.safety_tips.slice(0, 5).forEach(tip => {
+        tipsHTML += `<li class="mb-1">${tip}</li>`;
+    });
+    document.getElementById('safetyTipsList').innerHTML = tipsHTML;
+    
+    // Show panel
+    document.getElementById('analysisPanel').style.display = 'block';
+    
+    // Fit map to routes
+    const allPoints = data.routes.flatMap(r => r.points.map(p => [p.lat, p.lng]));
+    if (allPoints.length > 0) {
+        map.fitBounds(allPoints, { padding: [30, 30] });
+    }
+}
+
+function highlightRoute(idx) {
+    routeLayers.forEach((layer, i) => {
+        layer.setStyle({
+            weight: i === idx ? 6 : 3,
+            opacity: i === idx ? 1 : 0.4
+        });
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Pre-fill from URL params
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('source')) {
+    // For demo: use predefined coordinates for Lahore, Pakistan
+    document.getElementById('sourceInput').value = '31.5620, 74.3150';
+    document.getElementById('destInput').value = '31.5170, 74.3460';
+}
+</script>
+{% endblock %}

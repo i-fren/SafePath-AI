@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+{% block title %}Safe Network{% endblock %}
+
+{% block extra_css %}
+<style>
+    .network-status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; font-weight: 600; }
+    .network-status.available { background: #d1fae5; color: #065f46; }
+    .network-status.busy { background: #fef3c7; color: #92400e; }
+    .network-status.offline { background: #f3f4f6; color: #6b7280; }
+    .member-card { border-left: 4px solid #10b981; }
+    .help-btn { background: linear-gradient(135deg, #dc2626, #991b1b); border: none; color: white; padding: 20px; border-radius: 16px; font-size: 1.2rem; font-weight: 700; width: 100%; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-2"><i class="bi bi-people-fill text-primary"></i> Women's Safe Network</h2>
+    <p class="text-muted mb-4">A community of verified women who volunteer to help nearby users in need. When you send a help request, nearby available members are alerted.</p>
+
+    <div class="row g-4">
+        <!-- My Profile -->
+        <div class="col-lg-4">
+            <div class="card card-safety p-4 mb-4">
+                <h5 class="fw-bold mb-3">My Network Profile</h5>
+                <div class="text-center mb-3">
+                    <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width:80px;height:80px;">
+                        <i class="bi bi-person-fill text-primary" style="font-size:2.5rem;"></i>
+                    </div>
+                    <h6 class="mt-2">{{ request.user.username }}</h6>
+                    <span class="network-status {{ profile.status }}">
+                        <span class="rounded-circle d-inline-block" style="width:8px;height:8px;background:currentColor;"></span>
+                        {{ profile.get_status_display }}
+                    </span>
+                </div>
+                
+                {% if profile.is_verified %}
+                <span class="badge bg-success mb-3"><i class="bi bi-patch-check-fill"></i> Verified Member</span>
+                {% else %}
+                <span class="badge bg-warning mb-3"><i class="bi bi-hourglass-split"></i> Pending Verification</span>
+                {% endif %}
+                
+                <p class="small text-muted">Helped: {{ profile.helped_count }} times</p>
+
+                <h6 class="fw-semibold mt-3">Update Status</h6>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-sm btn-success" onclick="updateStatus('available')">
+                        <i class="bi bi-check-circle"></i> Available
+                    </button>
+                    <button class="btn btn-sm btn-warning" onclick="updateStatus('busy')">
+                        <i class="bi bi-dash-circle"></i> Busy
+                    </button>
+                    <button class="btn btn-sm btn-secondary" onclick="updateStatus('offline')">
+                        <i class="bi bi-x-circle"></i> Offline
+                    </button>
+                </div>
+            </div>
+
+            <!-- Request Help -->
+            <div class="card border-danger p-4">
+                <h5 class="fw-bold text-danger mb-3"><i class="bi bi-broadcast"></i> Request Help</h5>
+                <p class="small text-muted">Alert nearby verified women that you need assistance.</p>
+                <div class="mb-3">
+                    <span class="fw-bold" id="nearbyCount">--</span> members available nearby
+                </div>
+                <button class="help-btn" onclick="sendHelpRequest()">
+                    <i class="bi bi-megaphone-fill"></i> Send Help Request to Nearby Women
+                </button>
+            </div>
+        </div>
+
+        <!-- Nearby Members & Map -->
+        <div class="col-lg-8">
+            <div class="card card-safety p-4 mb-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt"></i> Nearby SafeNetwork Members</h5>
+                <div id="networkMap" style="height: 350px; border-radius: 12px;"></div>
+            </div>
+
+            <!-- Available Members -->
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold mb-3">Available Members ({{ nearby_members.count }})</h5>
+                <div class="row g-3">
+                    {% for member in nearby_members %}
+                    <div class="col-md-6">
+                        <div class="card member-card p-3">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
+                                    <i class="bi bi-person-check-fill text-success"></i>
+                                </div>
+                                <div>
+                                    <strong>{{ member.user.username }}</strong>
+                                    <span class="badge bg-success">Available</span><br>
+                                    <small class="text-muted">Helped {{ member.helped_count }} times</small>
+                                    {% if member.bio %}<br><small>{{ member.bio }}</small>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <p class="text-muted">No verified members currently available nearby. The network grows as more women join!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- My Help Requests -->
+            {% if my_alerts %}
+            <div class="card card-safety p-4 mt-4">
+                <h5 class="fw-bold mb-3">My Help Requests</h5>
+                {% for alert in my_alerts %}
+                <div class="border-bottom py-2 d-flex justify-content-between">
+                    <div>
+                        <small class="text-muted">{{ alert.created_at|date:"M d, H:i" }}</small> - 
+                        {{ alert.message }}
+                    </div>
+                    <span class="badge {% if alert.is_resolved %}bg-success{% else %}bg-warning{% endif %}">
+                        {% if alert.is_resolved %}Resolved{% else %}Active{% endif %}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const networkMap = L.map('networkMap').setView([31.5497, 74.3436], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(networkMap);
+
+// Show user location
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        const lat = pos.coords.latitude, lng = pos.coords.longitude;
+        networkMap.setView([lat, lng], 14);
+        L.circleMarker([lat, lng], {radius: 10, fillColor: '#7c3aed', color: '#fff', weight: 3, fillOpacity: 1})
+            .addTo(networkMap).bindPopup('You are here');
+        
+        // Show coverage radius
+        L.circle([lat, lng], {radius: 1000, color: '#7c3aed', fillOpacity: 0.05, weight: 1}).addTo(networkMap);
+
+        // Get nearby count
+        fetch(`/api/network/nearby/?lat=${lat}&lng=${lng}`)
+            .then(r => r.json())
+            .then(data => { document.getElementById('nearbyCount').textContent = data.count; });
+    });
+}
+
+// Show nearby members on map
+{% for member in nearby_members %}
+{% if member.latitude and member.longitude %}
+L.circleMarker([{{ member.latitude }}, {{ member.longitude }}], {
+    radius: 7, fillColor: '#10b981', color: '#fff', weight: 2, fillOpacity: 0.8
+}).addTo(networkMap).bindPopup('<b>{{ member.user.username }}</b><br>Available');
+{% endif %}
+{% endfor %}
+
+function updateStatus(status) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        fetch('/api/network/status/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({status: status, latitude: pos.coords.latitude, longitude: pos.coords.longitude})
+        }).then(r => r.json()).then(data => {
+            alert(`Status updated: ${status}`);
+            location.reload();
+        });
+    }, function() {
+        fetch('/api/network/status/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({status: status})
+        }).then(() => location.reload());
+    });
+}
+
+function sendHelpRequest() {
+    if (!confirm('Send help request to nearby SafeNetwork members?')) return;
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        fetch('/api/network/alert/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude, message: 'I need help nearby!'})
+        }).then(r => r.json()).then(data => {
+            alert(`Help request sent! ${data.members_notified} members notified.`);
+        });
+    }, function() { alert('Location required to send help request.'); });
+}
+
+function getCookie(name) {
+    let v = null;
+    if (document.cookie) {
+        document.cookie.split(';').forEach(c => { c = c.trim(); if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1)); });
+    }
+    return v;
+}
+</script>
+{% endblock %}

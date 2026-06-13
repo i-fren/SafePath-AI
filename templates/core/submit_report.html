@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Submit Report{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-safety p-4">
+                <h3 class="fw-bold mb-4"><i class="bi bi-exclamation-triangle text-warning"></i> Submit Safety Report</h3>
+                <p class="text-muted mb-4">Help keep the community safe by reporting safety concerns. Your report will be reviewed and used to improve route safety recommendations.</p>
+                
+                <form method="post" action="{% url 'submit_report' %}">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Report Type</label>
+                            {{ form.report_type }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Severity</label>
+                            {{ form.severity }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Title</label>
+                        {{ form.title }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Description</label>
+                        {{ form.description }}
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Latitude</label>
+                            {{ form.latitude }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Longitude</label>
+                            {{ form.longitude }}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Click map to set location</label>
+                        <div id="reportMap" style="height: 300px; border-radius: 12px;"></div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-safepath w-100">
+                        <i class="bi bi-send"></i> Submit Report
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const reportMap = L.map('reportMap').setView([31.5497, 74.3436], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(reportMap);
+
+let reportMarker = null;
+
+reportMap.on('click', function(e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lng = e.latlng.lng.toFixed(6);
+    
+    document.getElementById('id_latitude').value = lat;
+    document.getElementById('id_longitude').value = lng;
+    
+    if (reportMarker) reportMap.removeLayer(reportMarker);
+    reportMarker = L.marker([lat, lng]).addTo(reportMap)
+        .bindPopup('Report Location').openPopup();
+});
+
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        reportMap.setView([pos.coords.latitude, pos.coords.longitude], 14);
+    });
+}
+</script>
+{% endblock %}

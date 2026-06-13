@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block title %}Safe Time Analysis{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hour-bar { height: 30px; border-radius: 4px; display: flex; align-items: center; padding: 0 10px; color: white; font-weight: 600; font-size: 0.8rem; margin-bottom: 4px; transition: width 0.5s; }
+    .hour-bar.low { background: linear-gradient(90deg, #10b981, #059669); }
+    .hour-bar.medium { background: linear-gradient(90deg, #f59e0b, #d97706); }
+    .hour-bar.high { background: linear-gradient(90deg, #ef4444, #dc2626); }
+    .time-legend { display: flex; gap: 16px; flex-wrap: wrap; }
+    .time-legend span { display: flex; align-items: center; gap: 6px; }
+    .time-legend .dot { width: 12px; height: 12px; border-radius: 3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-2"><i class="bi bi-clock-history text-info"></i> Safe Time Analysis</h2>
+    <p class="text-muted mb-4">Find the safest times to travel any route. See hour-by-hour safety scores based on historical crime data and crowd patterns.</p>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold mb-3">Check Location Safety</h5>
+                <div class="mb-3">
+                    <label class="form-label">Location (click map or enter coordinates)</label>
+                    <input type="text" class="form-control" id="locationInput" placeholder="31.5497, 74.3436" value="31.5497, 74.3436">
+                </div>
+                <button class="btn btn-safepath w-100" onclick="analyzeSafeTime()">
+                    <i class="bi bi-clock"></i> Analyze Safe Times
+                </button>
+
+                <div id="mapContainer" class="mt-3">
+                    <div id="timeMap" style="height: 250px; border-radius: 12px;"></div>
+                </div>
+
+                <!-- Results Summary -->
+                <div id="timeSummary" class="mt-4" style="display:none;">
+                    <h6 class="fw-bold text-success"><i class="bi bi-check-circle"></i> Safest Times</h6>
+                    <p id="safestTimes" class="mb-3"></p>
+                    <h6 class="fw-bold text-danger"><i class="bi bi-x-circle"></i> Riskiest Times</h6>
+                    <p id="riskiestTimes" class="mb-3"></p>
+                    <div class="alert alert-info small" id="recommendation"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card card-safety p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0">24-Hour Safety Timeline</h5>
+                    <div class="time-legend">
+                        <span><div class="dot" style="background:#10b981;"></div> Safe</span>
+                        <span><div class="dot" style="background:#f59e0b;"></div> Caution</span>
+                        <span><div class="dot" style="background:#ef4444;"></div> Risky</span>
+                    </div>
+                </div>
+                
+                <div id="timelineChart">
+                    <p class="text-muted text-center py-5">Click "Analyze Safe Times" to see the 24-hour safety breakdown</p>
+                </div>
+            </div>
+
+            <!-- Safety Recommendations -->
+            <div class="card card-safety p-4 mt-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-lightbulb text-warning"></i> Time-Based Safety Tips</h5>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-success bg-opacity-10 rounded-3">
+                            <h6 class="text-success">🌅 Morning (6-10 AM)</h6>
+                            <small>Generally safest. Good visibility, school/office rush provides natural surveillance.</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-warning bg-opacity-10 rounded-3">
+                            <h6 class="text-warning">🌆 Evening (6-9 PM)</h6>
+                            <small>Moderate risk. Decreasing visibility but still some activity. Stay in main areas.</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-danger bg-opacity-10 rounded-3">
+                            <h6 class="text-danger">🌙 Late Night (11 PM-4 AM)</h6>
+                            <small>Highest risk. Minimal crowd, poor lighting. Use tracked journey + check-in timer.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const timeMap = L.map('timeMap').setView([31.5497, 74.3436], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(timeMap);
+let marker = L.marker([31.5497, 74.3436]).addTo(timeMap);
+
+timeMap.on('click', function(e) {
+    marker.setLatLng(e.latlng);
+    document.getElementById('locationInput').value = `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
+});
+
+function analyzeSafeTime() {
+    const coords = document.getElementById('locationInput').value.split(',');
+    if (coords.length !== 2) { alert('Enter valid coordinates: lat, lng'); return; }
+    const lat = parseFloat(coords[0].trim());
+    const lng = parseFloat(coords[1].trim());
+
+    fetch(`/api/safe-time/?lat=${lat}&lng=${lng}`)
+        .then(r => r.json())
+        .then(data => {
+            renderTimeline(data.hourly_scores);
+            document.getElementById('timeSummary').style.display = 'block';
+            document.getElementById('safestTimes').textContent = data.safest_times.join(', ');
+            document.getElementById('riskiestTimes').textContent = data.riskiest_times.join(', ');
+            document.getElementById('recommendation').textContent = data.recommendation;
+        });
+}
+
+function renderTimeline(hours) {
+    let html = '';
+    hours.forEach(h => {
+        const width = Math.max(20, h.safety_score);
+        html += `
+            <div class="d-flex align-items-center mb-1">
+                <div style="width:50px;font-size:0.75rem;color:#6b7280;">${h.time}</div>
+                <div class="hour-bar ${h.risk_level}" style="width:${width}%;">
+                    ${Math.round(h.safety_score)} - ${h.label}
+                </div>
+            </div>
+        `;
+    });
+    document.getElementById('timelineChart').innerHTML = html;
+}
+
+// Auto-analyze on load
+analyzeSafeTime();
+</script>
+{% endblock %}

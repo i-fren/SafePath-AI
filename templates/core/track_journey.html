@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Track Journey{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card card-safety p-4">
+                <h4 class="fw-bold mb-3"><i class="bi bi-broadcast text-success"></i> Live Tracking</h4>
+                <div class="mb-3">
+                    <span class="badge fs-6" id="statusBadge">Loading...</span>
+                </div>
+                <div id="journeyInfo">
+                    <p><strong>From:</strong> <span id="sourceName">{{ journey.source_name|default:"--" }}</span></p>
+                    <p><strong>To:</strong> <span id="destName">{{ journey.dest_name|default:"--" }}</span></p>
+                    <p><strong>ETA:</strong> <span id="etaInfo">{{ journey.eta_minutes }} minutes</span></p>
+                    <p><strong>Started:</strong> {{ journey.started_at|date:"M d, H:i" }}</p>
+                    <p><strong>Status:</strong> <span id="statusText">{{ journey.get_status_display }}</span></p>
+                </div>
+
+                {% if journey.status == 'sos' %}
+                <div class="alert alert-danger mt-3">
+                    <h5><i class="bi bi-exclamation-triangle-fill"></i> SOS ALERT</h5>
+                    <p class="mb-0">An emergency has been triggered. Please check on the traveler immediately.</p>
+                    <p class="mt-2 mb-0"><strong>Emergency: Police 15 | Rescue 1122</strong></p>
+                </div>
+                {% endif %}
+
+                {% if journey.status == 'completed' %}
+                <div class="alert alert-success mt-3">
+                    <h5><i class="bi bi-check-circle-fill"></i> Arrived Safely</h5>
+                    <p class="mb-0">The traveler has confirmed safe arrival.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-lg-8">
+            <div id="map" style="height: 550px; border-radius: 16px;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const map = L.map('map').setView([{{ journey.current_lat|default:journey.source_lat }}, {{ journey.current_lng|default:journey.source_lng }}], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+L.marker([{{ journey.source_lat }}, {{ journey.source_lng }}]).addTo(map).bindPopup('Start');
+L.marker([{{ journey.dest_lat }}, {{ journey.dest_lng }}]).addTo(map).bindPopup('Destination');
+
+let currentMarker = L.circleMarker([{{ journey.current_lat|default:journey.source_lat }}, {{ journey.current_lng|default:journey.source_lng }}], {
+    radius: 12, fillColor: '#10b981', color: '#fff', weight: 3, fillOpacity: 1
+}).addTo(map).bindPopup('Current Location');
+
+map.fitBounds([[{{ journey.source_lat }}, {{ journey.source_lng }}], [{{ journey.dest_lat }}, {{ journey.dest_lng }}]], {padding: [50, 50]});
+
+// Poll for updates
+function updateStatus() {
+    fetch('/api/journey/{{ journey.tracking_id }}/status/')
+        .then(r => r.json())
+        .then(data => {
+            if (data.current_location) {
+                currentMarker.setLatLng([data.current_location.lat, data.current_location.lng]);
+            }
+            const badge = document.getElementById('statusBadge');
+            const statusColors = {active: 'bg-success', completed: 'bg-primary', sos: 'bg-danger', unconfirmed: 'bg-warning'};
+            badge.className = 'badge fs-6 ' + (statusColors[data.status] || 'bg-secondary');
+            badge.textContent = data.status.toUpperCase();
+            document.getElementById('statusText').textContent = data.status;
+        });
+}
+
+updateStatus();
+setInterval(updateStatus, 10000); // Update every 10 seconds
+</script>
+{% endblock %}

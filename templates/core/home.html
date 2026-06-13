@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold mb-4">Your Safety,<br>Our Priority</h1>
+                <p class="lead mb-4">
+                    AI-powered route recommendations that keep you safe. 
+                    Get real-time safety scores, crime alerts, and the safest path to your destination.
+                </p>
+                <a href="{% url 'route_planner' %}" class="btn btn-safepath btn-lg me-3">
+                    <i class="bi bi-map"></i> Plan Safe Route
+                </a>
+                <a href="{% url 'community_reports' %}" class="btn btn-outline-light btn-lg">
+                    <i class="bi bi-megaphone"></i> Report Issue
+                </a>
+            </div>
+            <div class="col-lg-6 mt-4 mt-lg-0">
+                <div class="card card-safety p-4" style="background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);">
+                    <h5 class="text-white mb-3"><i class="bi bi-search"></i> Quick Route Search</h5>
+                    <form id="quickSearchForm">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="quickSource" placeholder="Enter source location" required>
+                        </div>
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="quickDest" placeholder="Enter destination" required>
+                        </div>
+                        <div class="mb-3">
+                            <select class="form-select" id="quickTime">
+                                <option value="day">Day Time</option>
+                                <option value="night">Night Time</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-safepath w-100">
+                            <i class="bi bi-shield-check"></i> Find Safest Route
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-3">
+                <div class="card card-safety stat-card">
+                    <div class="stat-number">{{ total_reports }}</div>
+                    <p class="text-muted mb-0">Community Reports</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-safety stat-card">
+                    <div class="stat-number">{{ total_crimes }}</div>
+                    <p class="text-muted mb-0">Crime Hotspots Tracked</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-safety stat-card">
+                    <div class="stat-number">{{ total_safe_zones }}</div>
+                    <p class="text-muted mb-0">Safe Zones Mapped</p>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card card-safety stat-card">
+                    <div class="stat-number">{{ total_analyses }}</div>
+                    <p class="text-muted mb-0">Routes Analyzed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5 bg-white">
+    <div class="container">
+        <h2 class="text-center fw-bold mb-5">How SafePath AI Keeps You Safe</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card card-safety h-100 p-4 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-robot text-primary" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5>AI Safety Analysis</h5>
+                    <p class="text-muted">Our AI engine analyzes crime data, lighting, crowd density, and more to calculate real-time safety scores from 0-100.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-safety h-100 p-4 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-map text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5>Interactive Route Map</h5>
+                    <p class="text-muted">View multiple route options on an interactive map with color-coded safety indicators, crime hotspots, and safe zones.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card card-safety h-100 p-4 text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-people text-warning" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5>Community Powered</h5>
+                    <p class="text-muted">Report unsafe areas, broken streetlights, and suspicious activity. Community insights improve route safety for everyone.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="py-5">
+    <div class="container">
+        <h2 class="text-center fw-bold mb-5">How It Works</h2>
+        <div class="row g-4">
+            <div class="col-md-3 text-center">
+                <div class="rounded-circle bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <i class="bi bi-geo-alt text-primary" style="font-size: 2rem;"></i>
+                </div>
+                <h6 class="mt-3">1. Enter Locations</h6>
+                <p class="text-muted small">Set your source and destination</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="rounded-circle bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <i class="bi bi-cpu text-success" style="font-size: 2rem;"></i>
+                </div>
+                <h6 class="mt-3">2. AI Analyzes</h6>
+                <p class="text-muted small">AI processes crime & safety data</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="rounded-circle bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <i class="bi bi-signpost-2 text-warning" style="font-size: 2rem;"></i>
+                </div>
+                <h6 class="mt-3">3. Get Routes</h6>
+                <p class="text-muted small">View multiple route options</p>
+            </div>
+            <div class="col-md-3 text-center">
+                <div class="rounded-circle bg-danger bg-opacity-10 d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                    <i class="bi bi-shield-check text-danger" style="font-size: 2rem;"></i>
+                </div>
+                <h6 class="mt-3">4. Travel Safe</h6>
+                <p class="text-muted small">Follow the safest recommended route</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('quickSearchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    // Redirect to route planner with params
+    const source = document.getElementById('quickSource').value;
+    const dest = document.getElementById('quickDest').value;
+    const time = document.getElementById('quickTime').value;
+    window.location.href = `/route-planner/?source=${encodeURIComponent(source)}&dest=${encodeURIComponent(dest)}&time=${time}`;
+});
+</script>
+{% endblock %}

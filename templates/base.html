@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SafePath AI{% endblock %} - Women Safety Route Assistant</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        :root {
+            --sp-primary: #7c3aed;
+            --sp-secondary: #ec4899;
+            --sp-accent: #f59e0b;
+            --sp-dark: #1e1b4b;
+            --sp-light: #faf5ff;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--sp-light);
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--sp-primary), var(--sp-secondary));
+            box-shadow: 0 2px 15px rgba(124, 58, 237, 0.3);
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+        
+        .btn-safepath {
+            background: linear-gradient(135deg, var(--sp-primary), var(--sp-secondary));
+            border: none;
+            color: white;
+            padding: 10px 24px;
+            border-radius: 25px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn-safepath:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(124, 58, 237, 0.4);
+            color: white;
+        }
+        
+        .card-safety {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s;
+        }
+        
+        .card-safety:hover {
+            transform: translateY(-3px);
+        }
+        
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: white;
+        }
+        
+        .score-high { background: linear-gradient(135deg, #10b981, #059669); }
+        .score-medium { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .score-low { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        
+        .hero-section {
+            background: linear-gradient(135deg, var(--sp-dark) 0%, var(--sp-primary) 100%);
+            color: white;
+            padding: 80px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 60%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(236, 72, 153, 0.2), transparent 70%);
+        }
+        
+        #map {
+            height: 500px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .footer {
+            background: var(--sp-dark);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 40px 0;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 24px;
+        }
+        
+        .stat-card .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--sp-primary), var(--sp-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="bi bi-shield-check"></i> SafePath AI
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}"><i class="bi bi-house"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'route_planner' %}"><i class="bi bi-map"></i> Route Planner</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'nearby_safe_places' %}"><i class="bi bi-geo-alt"></i> Safe Places</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-shield"></i> Safety
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'community_reports' %}"><i class="bi bi-megaphone"></i> Community Reports</a></li>
+                            <li><a class="dropdown-item" href="{% url 'safety_tips' %}"><i class="bi bi-lightbulb"></i> Safety Tips</a></li>
+                            <li><a class="dropdown-item" href="{% url 'ai_assistant' %}"><i class="bi bi-robot"></i> AI Assistant</a></li>
+                            <li><a class="dropdown-item" href="{% url 'safe_time_analysis' %}"><i class="bi bi-clock"></i> Safe Time Analysis</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'fake_call' %}"><i class="bi bi-telephone-inbound"></i> Fake Call</a></li>
+                            <li><a class="dropdown-item" href="{% url 'evidence_recorder' %}"><i class="bi bi-record-circle"></i> Evidence Recorder</a></li>
+                            <li><a class="dropdown-item" href="{% url 'safe_network' %}"><i class="bi bi-people"></i> Safe Network</a></li>
+                        </ul>
+                    </li>
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link text-warning fw-bold" href="{% url 'sos_page' %}"><i class="bi bi-exclamation-triangle-fill"></i> SOS</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-person-circle"></i> {{ user.username }}
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{% url 'my_journeys' %}"><i class="bi bi-geo-alt"></i> My Journeys</a></li>
+                            <li><a class="dropdown-item" href="{% url 'start_journey' %}"><i class="bi bi-play-circle"></i> Start Journey</a></li>
+                            <li><a class="dropdown-item" href="{% url 'transport_verify' %}"><i class="bi bi-car-front"></i> Transport Verify</a></li>
+                            <li><a class="dropdown-item" href="{% url 'trusted_contacts' %}"><i class="bi bi-people"></i> Trusted Contacts</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        </ul>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'register' %}"><i class="bi bi-person-plus"></i> Register</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    {% block content %}{% endblock %}
+
+    <!-- Footer -->
+    <footer class="footer mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4">
+                    <h5 class="text-white"><i class="bi bi-shield-check"></i> SafePath AI</h5>
+                    <p>AI-powered women safety route assistant. Making every journey safer.</p>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-white">Quick Links</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'route_planner' %}" class="text-decoration-none text-light">Route Planner</a></li>
+                        <li><a href="{% url 'community_reports' %}" class="text-decoration-none text-light">Community Reports</a></li>
+                        <li><a href="{% url 'safety_tips' %}" class="text-decoration-none text-light">Safety Tips</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6 class="text-white">Emergency (Pakistan)</h6>
+                    <p><i class="bi bi-telephone-fill"></i> Police: 15</p>
+                    <p><i class="bi bi-telephone-fill"></i> Rescue: 1122</p>
+                    <p><i class="bi bi-telephone-fill"></i> Women Helpline: 1043</p>
+                    <p><i class="bi bi-telephone-fill"></i> Edhi Foundation: 115</p>
+                </div>
+            </div>
+            <hr class="border-secondary">
+            <p class="text-center mb-0">&copy; 2024 SafePath AI. Built for hackathon demonstration.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Zero-Data SOS Module (works offline) -->
+    <script src="/static/js/zero_data_sos.js"></script>
+    
+    <!-- Shake-to-SOS Global Script -->
+    {% if user.is_authenticated %}
+    <script>
+    (function() {
+        let shakeCount = 0;
+        let lastShake = 0;
+        let shakeTimeout = null;
+
+        if (window.DeviceMotionEvent) {
+            window.addEventListener('devicemotion', function(e) {
+                const acc = e.accelerationIncludingGravity;
+                if (!acc) return;
+                const total = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+                const now = Date.now();
+
+                if (total > 35) { // Shake threshold
+                    if (now - lastShake > 300 && now - lastShake < 1000) {
+                        shakeCount++;
+                    } else if (now - lastShake >= 1000) {
+                        shakeCount = 1;
+                    }
+                    lastShake = now;
+
+                    if (shakeCount >= 3) {
+                        shakeCount = 0;
+                        triggerShakeSOS();
+                    }
+                }
+
+                // Reset after 2 seconds of no shake
+                if (shakeTimeout) clearTimeout(shakeTimeout);
+                shakeTimeout = setTimeout(() => { shakeCount = 0; }, 2000);
+            });
+        }
+
+        function triggerShakeSOS() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    fetch('/api/sos/shake/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCSRF()
+                        },
+                        body: JSON.stringify({
+                            latitude: pos.coords.latitude,
+                            longitude: pos.coords.longitude,
+                            trigger: 'shake'
+                        })
+                    }).then(r => r.json()).then(data => {
+                        // Subtle vibration confirmation
+                        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 100]);
+                    });
+                });
+            }
+        }
+
+        function getCSRF() {
+            let v = null;
+            if (document.cookie) {
+                document.cookie.split(';').forEach(c => {
+                    c = c.trim();
+                    if (c.startsWith('csrftoken=')) v = decodeURIComponent(c.substring(10));
+                });
+            }
+            return v;
+        }
+    })();
+    </script>
+    {% endif %}
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

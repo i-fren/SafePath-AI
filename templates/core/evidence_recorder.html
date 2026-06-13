@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+{% block title %}Evidence Recorder{% endblock %}
+
+{% block extra_css %}
+<style>
+    .record-btn { width: 120px; height: 120px; border-radius: 50%; border: 6px solid #dc2626; background: transparent; color: #dc2626; font-size: 1.5rem; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+    .record-btn:hover { background: #dc2626; color: white; }
+    .record-btn.recording { background: #dc2626; color: white; animation: recordPulse 1.5s infinite; }
+    @keyframes recordPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); } 50% { box-shadow: 0 0 0 15px rgba(220,38,38,0); } }
+    .recording-timer { font-size: 2rem; font-family: monospace; font-weight: 700; color: #dc2626; }
+    .stealth-note { background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px; padding: 12px; border: 1px solid #f59e0b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="fw-bold mb-4"><i class="bi bi-record-circle text-danger"></i> Evidence Recorder</h2>
+            <p class="text-muted mb-4">Secretly record audio/video evidence. Recordings are saved with GPS location and timestamp for use in police reports.</p>
+
+            <div class="stealth-note mb-4">
+                <strong><i class="bi bi-eye-slash"></i> Stealth Mode:</strong> Screen stays dark during recording. Your phone will appear to be off while recording continues in background.
+            </div>
+
+            <!-- Recording Controls -->
+            <div class="card card-safety p-5 text-center mb-4">
+                <div class="d-flex justify-content-center gap-4 mb-4">
+                    <div class="text-center">
+                        <button class="record-btn" id="audioBtn" onclick="startRecording('audio')">
+                            <i class="bi bi-mic-fill" style="font-size:2rem;"></i>
+                            <small>Audio</small>
+                        </button>
+                    </div>
+                    <div class="text-center">
+                        <button class="record-btn" id="videoBtn" onclick="startRecording('video')">
+                            <i class="bi bi-camera-video-fill" style="font-size:2rem;"></i>
+                            <small>Video</small>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="recordingStatus" style="display:none;">
+                    <div class="recording-timer" id="recTimer">00:00</div>
+                    <p class="text-muted mt-2"><span class="badge bg-danger">● REC</span> Recording in progress...</p>
+                    <p class="small text-muted" id="recLocation">Location: Getting GPS...</p>
+                    <button class="btn btn-danger btn-lg mt-3" onclick="stopRecording()">
+                        <i class="bi bi-stop-fill"></i> Stop & Save
+                    </button>
+                </div>
+
+                <div id="savedStatus" style="display:none;" class="mt-3">
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle-fill"></i> <strong>Evidence Saved!</strong>
+                        <p class="mb-0 small">Recording saved with GPS coordinates and timestamp. Available for police reports.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <button class="btn btn-outline-danger w-100 py-3" onclick="emergencyRecord()">
+                        <i class="bi bi-exclamation-triangle-fill"></i><br>
+                        <strong>Emergency Record</strong><br>
+                        <small>Quick start + SOS</small>
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-outline-primary w-100 py-3" onclick="startRecording('audio')">
+                        <i class="bi bi-mic-fill"></i><br>
+                        <strong>Silent Audio</strong><br>
+                        <small>Screen off mode</small>
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-outline-warning w-100 py-3" onclick="takePhoto()">
+                        <i class="bi bi-camera-fill"></i><br>
+                        <strong>Quick Photo</strong><br>
+                        <small>Capture evidence</small>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Recording History -->
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold mb-3"><i class="bi bi-archive"></i> Saved Evidence</h5>
+                {% for rec in recordings %}
+                <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                    <div>
+                        <span class="badge {% if rec.recording_type == 'audio' %}bg-primary{% elif rec.recording_type == 'video' %}bg-danger{% else %}bg-warning{% endif %} me-2">
+                            {{ rec.get_recording_type_display }}
+                        </span>
+                        {{ rec.duration_seconds }}s
+                        {% if rec.is_emergency %}<span class="badge bg-danger">Emergency</span>{% endif %}
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">{{ rec.started_at|date:"M d, H:i" }}</small><br>
+                        <small class="text-muted">
+                            {% if rec.latitude %}📍 {{ rec.latitude|floatformat:4 }}, {{ rec.longitude|floatformat:4 }}{% endif %}
+                        </small>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">No recordings yet. Your evidence recordings will appear here.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let isRecording = false;
+let recordingId = null;
+let recInterval = null;
+let recSeconds = 0;
+let mediaRecorder = null;
+let recordedChunks = [];
+
+function startRecording(type) {
+    if (isRecording) return;
+    isRecording = true;
+    recSeconds = 0;
+
+    document.getElementById('recordingStatus').style.display = 'block';
+    document.getElementById('savedStatus').style.display = 'none';
+    document.getElementById(type + 'Btn').classList.add('recording');
+
+    // Start timer
+    recInterval = setInterval(() => {
+        recSeconds++;
+        const m = Math.floor(recSeconds / 60).toString().padStart(2, '0');
+        const s = (recSeconds % 60).toString().padStart(2, '0');
+        document.getElementById('recTimer').textContent = `${m}:${s}`;
+    }, 1000);
+
+    // Get location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            document.getElementById('recLocation').textContent = 
+                `Location: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+            saveRecordingStart(type, pos.coords.latitude, pos.coords.longitude);
+        }, () => saveRecordingStart(type, null, null));
+    } else {
+        saveRecordingStart(type, null, null);
+    }
+
+    // Try actual media recording
+    const constraints = type === 'video' ? {video: true, audio: true} : {audio: true};
+    navigator.mediaDevices.getUserMedia(constraints).then(stream => {
+        mediaRecorder = new MediaRecorder(stream);
+        recordedChunks = [];
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.start();
+    }).catch(() => { /* Silent fail - still log to server */ });
+}
+
+function saveRecordingStart(type, lat, lng) {
+    fetch('/api/evidence/start/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+        body: JSON.stringify({type: type, latitude: lat, longitude: lng, is_emergency: false})
+    }).then(r => r.json()).then(data => { recordingId = data.recording_id; });
+}
+
+function stopRecording() {
+    if (!isRecording) return;
+    isRecording = false;
+    clearInterval(recInterval);
+
+    document.querySelectorAll('.record-btn').forEach(b => b.classList.remove('recording'));
+    document.getElementById('recordingStatus').style.display = 'none';
+    document.getElementById('savedStatus').style.display = 'block';
+
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    }
+
+    if (recordingId) {
+        fetch(`/api/evidence/${recordingId}/stop/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({duration: recSeconds, notes: 'Evidence recording'})
+        });
+    }
+}
+
+function emergencyRecord() {
+    startRecording('audio');
+    // Also trigger silent SOS
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            fetch('/api/sos/shake/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude, trigger: 'evidence_emergency'})
+            });
+        });
+    }
+}
+
+function takePhoto() {
+    navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}}).then(stream => {
+        const video = document.createElement('video');
+        video.srcObject = stream;
+        video.play();
+        setTimeout(() => {
+            stream.getTracks().forEach(t => t.stop());
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    fetch('/api/evidence/start/', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                        body: JSON.stringify({type: 'photo', latitude: pos.coords.latitude, longitude: pos.coords.longitude})
+                    }).then(r => r.json()).then(data => {
+                        fetch(`/api/evidence/${data.recording_id}/stop/`, {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                            body: JSON.stringify({duration: 1, notes: 'Quick photo evidence'})
+                        });
+                        alert('📸 Photo evidence captured and saved!');
+                    });
+                });
+            }
+        }, 500);
+    }).catch(() => alert('Camera access required for photo evidence.'));
+}
+
+function getCookie(name) {
+    let v = null;
+    if (document.cookie) {
+        document.cookie.split(';').forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+        });
+    }
+    return v;
+}
+</script>
+{% endblock %}

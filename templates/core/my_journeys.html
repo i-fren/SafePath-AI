@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}My Journeys{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-geo-alt"></i> My Journeys</h2>
+        <a href="{% url 'start_journey' %}" class="btn btn-safepath">
+            <i class="bi bi-play-circle"></i> Start New Journey
+        </a>
+    </div>
+
+    <div class="row g-3">
+        {% for journey in journeys %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-safety p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge 
+                        {% if journey.status == 'active' %}bg-success
+                        {% elif journey.status == 'completed' %}bg-primary
+                        {% elif journey.status == 'sos' %}bg-danger
+                        {% elif journey.status == 'unconfirmed' %}bg-warning
+                        {% else %}bg-secondary{% endif %}">
+                        {{ journey.get_status_display }}
+                    </span>
+                    <small class="text-muted">{{ journey.created_at|date:"M d, H:i" }}</small>
+                </div>
+                <h6 class="mb-1">{{ journey.source_name|default:"Source" }} → {{ journey.dest_name|default:"Destination" }}</h6>
+                <p class="text-muted small mb-2">ETA: {{ journey.eta_minutes }} min | Check-in: {% if journey.checkin_interval > 0 %}{{ journey.checkin_interval }} min{% else %}Off{% endif %}</p>
+                
+                <div class="mt-auto">
+                    {% if journey.status == 'active' %}
+                    <a href="{% url 'journey_detail' journey.tracking_id %}" class="btn btn-sm btn-success w-100">
+                        <i class="bi bi-broadcast"></i> View Live Journey
+                    </a>
+                    {% else %}
+                    <a href="{% url 'journey_detail' journey.tracking_id %}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="bi bi-eye"></i> View Details
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-safety p-5 text-center">
+                <i class="bi bi-map text-muted" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">No Journeys Yet</h5>
+                <p class="text-muted">Start a tracked journey to enable live location sharing and safety features.</p>
+                <a href="{% url 'start_journey' %}" class="btn btn-safepath">Start Your First Journey</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Trusted Contacts{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-people-fill text-primary"></i> Trusted Contacts</h2>
+        <a href="{% url 'add_trusted_contact' %}" class="btn btn-safepath">
+            <i class="bi bi-person-plus"></i> Add Contact
+        </a>
+    </div>
+    <p class="text-muted mb-4">Your trusted contacts will be notified during emergencies, SOS alerts, and missed check-ins.</p>
+
+    <div class="row g-3">
+        {% for contact in contacts %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card card-safety p-3 h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h5 class="mb-1">
+                            {{ contact.name }}
+                            {% if contact.is_primary %}
+                            <span class="badge bg-success">Primary</span>
+                            {% endif %}
+                        </h5>
+                        <p class="text-muted mb-1 small">{{ contact.relationship }}</p>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots-vertical"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{% url 'edit_trusted_contact' contact.pk %}"><i class="bi bi-pencil"></i> Edit</a></li>
+                            <li>
+                                <form method="post" action="{% url 'delete_trusted_contact' contact.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Remove {{ contact.name }}?')">
+                                        <i class="bi bi-trash"></i> Remove
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <hr>
+                <p class="mb-1"><i class="bi bi-telephone text-success"></i> {{ contact.phone }}</p>
+                {% if contact.email %}
+                <p class="mb-0"><i class="bi bi-envelope text-primary"></i> {{ contact.email }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-safety p-5 text-center">
+                <i class="bi bi-people text-muted" style="font-size: 3rem;"></i>
+                <h5 class="mt-3">No Trusted Contacts Yet</h5>
+                <p class="text-muted">Add trusted contacts who will be notified during emergencies.</p>
+                <a href="{% url 'add_trusted_contact' %}" class="btn btn-safepath">
+                    <i class="bi bi-person-plus"></i> Add Your First Contact
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

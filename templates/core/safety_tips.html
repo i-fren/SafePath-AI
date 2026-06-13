@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% block title %}Safety Tips{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-4"><i class="bi bi-lightbulb text-warning"></i> Safety Tips & Resources</h2>
+    
+    <div class="row g-4">
+        <!-- General Safety -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4 h-100">
+                <h5 class="fw-bold"><i class="bi bi-shield-check text-success"></i> General Safety</h5>
+                <ul class="mt-3">
+                    <li class="mb-2">Always share your live location with a trusted contact when traveling.</li>
+                    <li class="mb-2">Keep your phone fully charged before heading out.</li>
+                    <li class="mb-2">Stay aware of your surroundings and trust your instincts.</li>
+                    <li class="mb-2">Stick to well-populated and well-lit areas whenever possible.</li>
+                    <li class="mb-2">Keep emergency numbers on speed dial.</li>
+                    <li class="mb-2">Carry a personal safety alarm or whistle.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Night Safety -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4 h-100">
+                <h5 class="fw-bold"><i class="bi bi-moon-stars text-primary"></i> Night Time Safety</h5>
+                <ul class="mt-3">
+                    <li class="mb-2">Avoid isolated areas and poorly lit streets after dark.</li>
+                    <li class="mb-2">Consider traveling with a companion when possible.</li>
+                    <li class="mb-2">Avoid wearing headphones so you can hear your surroundings.</li>
+                    <li class="mb-2">Plan your route before leaving and inform someone.</li>
+                    <li class="mb-2">Use well-known and busy routes even if slightly longer.</li>
+                    <li class="mb-2">Keep your keys ready before reaching your door.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Public Transport -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4 h-100">
+                <h5 class="fw-bold"><i class="bi bi-bus-front text-info"></i> Public Transport Safety</h5>
+                <ul class="mt-3">
+                    <li class="mb-2">Wait in well-lit and populated areas at stops/stations.</li>
+                    <li class="mb-2">Sit near the driver or in women-reserved coaches when available.</li>
+                    <li class="mb-2">Note the vehicle number before boarding a cab/auto.</li>
+                    <li class="mb-2">Share trip details with family when using ride-sharing apps.</li>
+                    <li class="mb-2">Avoid empty compartments, especially late at night.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Digital Safety -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4 h-100">
+                <h5 class="fw-bold"><i class="bi bi-phone text-danger"></i> Digital Safety</h5>
+                <ul class="mt-3">
+                    <li class="mb-2">Keep safety apps installed (SafePath AI, emergency SOS).</li>
+                    <li class="mb-2">Enable location sharing with trusted contacts.</li>
+                    <li class="mb-2">Save emergency contacts in your phone's ICE section.</li>
+                    <li class="mb-2">Learn how to quickly trigger your phone's SOS feature.</li>
+                    <li class="mb-2">Report suspicious behavior through community platforms.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Emergency Contacts -->
+        <div class="col-12">
+            <div class="card card-safety p-4" style="background: linear-gradient(135deg, #fef2f2, #fff1f2);">
+                <h5 class="fw-bold text-danger"><i class="bi bi-telephone-fill"></i> Emergency Contacts (Pakistan)</h5>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded-3 text-center">
+                            <h6 class="text-danger">Police</h6>
+                            <h4 class="fw-bold">15</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded-3 text-center">
+                            <h6 class="text-danger">Rescue 1122</h6>
+                            <h4 class="fw-bold">1122</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded-3 text-center">
+                            <h6 class="text-danger">Women Helpline</h6>
+                            <h4 class="fw-bold">1043</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded-3 text-center">
+                            <h6 class="text-danger">Edhi Foundation</h6>
+                            <h4 class="fw-bold">115</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded-3 text-center">
+                            <h6 class="text-danger">Chippa Foundation</h6>
+                            <h4 class="fw-bold">1021</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded-3 text-center">
+                            <h6 class="text-danger">Fire Brigade</h6>
+                            <h4 class="fw-bold">16</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded-3 text-center">
+                            <h6 class="text-danger">Motorway Police</h6>
+                            <h4 class="fw-bold">130</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded-3 text-center">
+                            <h6 class="text-danger">Citizen Portal</h6>
+                            <h4 class="fw-bold">080011786</h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Nearby Safe Places{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row g-4">
+        <!-- Filters -->
+        <div class="col-lg-3">
+            <div class="card card-safety p-4">
+                <h4 class="fw-bold mb-3"><i class="bi bi-shield-check text-success"></i> Safe Places</h4>
+                <p class="text-muted small">Find police stations, hospitals, pharmacies, and other safe locations near you.</p>
+                
+                <button class="btn btn-safepath w-100 mb-3" onclick="getMyLocation()">
+                    <i class="bi bi-crosshair"></i> Use My Location
+                </button>
+
+                <h6 class="fw-semibold mt-3">Filter by Type</h6>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="filter_all" checked onchange="filterPlaces('all')">
+                    <label class="form-check-label" for="filter_all">All Places</label>
+                </div>
+                {% for code, label in zone_types %}
+                <div class="form-check mb-2">
+                    <input class="form-check-input zone-filter" type="checkbox" id="filter_{{ code }}" checked onchange="filterPlaces()">
+                    <label class="form-check-label" for="filter_{{ code }}">{{ label }}</label>
+                </div>
+                {% endfor %}
+
+                <hr>
+                <div id="placesList" class="mt-3">
+                    <p class="text-muted small">Allow location access or click the map to see nearby places sorted by distance.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="col-lg-9">
+            <div id="map" style="height: 600px; border-radius: 16px;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const map = L.map('map').setView([31.5497, 74.3436], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+let userLat = 31.5497, userLng = 74.3436;
+let userMarker = null;
+let placeMarkers = [];
+
+const typeIcons = {
+    police: {color: '#1d4ed8', icon: '🚔'},
+    hospital: {color: '#dc2626', icon: '🏥'},
+    pharmacy: {color: '#16a34a', icon: '💊'},
+    fire_station: {color: '#ea580c', icon: '🚒'},
+    public_space: {color: '#7c3aed', icon: '🏛️'},
+    shopping: {color: '#ca8a04', icon: '🛒'},
+    transit: {color: '#0891b2', icon: '🚉'},
+    community_center: {color: '#be185d', icon: '🏘️'},
+    other: {color: '#6b7280', icon: '📍'},
+};
+
+// Load all safe zones
+const allPlaces = [
+    {% for zone in safe_zones %}
+    {id: {{ zone.id }}, name: "{{ zone.name }}", type: "{{ zone.zone_type }}", lat: {{ zone.latitude }}, lng: {{ zone.longitude }}, address: "{{ zone.address }}", phone: "{{ zone.phone }}", hours: "{{ zone.operating_hours }}"},
+    {% endfor %}
+];
+
+function renderPlaces() {
+    // Clear existing markers
+    placeMarkers.forEach(m => map.removeLayer(m));
+    placeMarkers = [];
+
+    const activeFilters = [];
+    document.querySelectorAll('.zone-filter:checked').forEach(cb => {
+        activeFilters.push(cb.id.replace('filter_', ''));
+    });
+
+    let visiblePlaces = allPlaces.filter(p => activeFilters.includes(p.type));
+
+    // Sort by distance from user
+    visiblePlaces.forEach(p => {
+        const R = 6371000;
+        const dLat = (p.lat - userLat) * Math.PI / 180;
+        const dLng = (p.lng - userLng) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(userLat*Math.PI/180)*Math.cos(p.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+        p.distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    });
+    visiblePlaces.sort((a, b) => a.distance - b.distance);
+
+    // Add markers
+    visiblePlaces.forEach(p => {
+        const ti = typeIcons[p.type] || typeIcons.other;
+        const marker = L.circleMarker([p.lat, p.lng], {
+            radius: 8, fillColor: ti.color, color: '#fff', weight: 2, fillOpacity: 0.9
+        }).addTo(map).bindPopup(
+            `<b>${ti.icon} ${p.name}</b><br>` +
+            `<small>${p.address || ''}</small><br>` +
+            (p.phone ? `<a href="tel:${p.phone}">📞 ${p.phone}</a><br>` : '') +
+            `<small>Hours: ${p.hours}</small><br>` +
+            `<small>Distance: ${(p.distance/1000).toFixed(2)} km</small>`
+        );
+        placeMarkers.push(marker);
+    });
+
+    // Update list
+    let listHTML = '';
+    visiblePlaces.slice(0, 10).forEach(p => {
+        const ti = typeIcons[p.type] || typeIcons.other;
+        listHTML += `<div class="border-bottom py-2">
+            <strong>${ti.icon} ${p.name}</strong><br>
+            <small class="text-muted">${(p.distance/1000).toFixed(2)} km away</small>
+            ${p.phone ? `<br><a href="tel:${p.phone}" class="small">${p.phone}</a>` : ''}
+        </div>`;
+    });
+    document.getElementById('placesList').innerHTML = listHTML || '<p class="text-muted">No places found for selected filters.</p>';
+}
+
+function getMyLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            userLat = pos.coords.latitude;
+            userLng = pos.coords.longitude;
+            map.setView([userLat, userLng], 14);
+            if (userMarker) map.removeLayer(userMarker);
+            userMarker = L.circleMarker([userLat, userLng], {
+                radius: 12, fillColor: '#dc2626', color: '#fff', weight: 3, fillOpacity: 1
+            }).addTo(map).bindPopup('📍 You are here').openPopup();
+            renderPlaces();
+        }, function() { alert('Unable to get location. Please allow location access.'); });
+    }
+}
+
+function filterPlaces(type) {
+    if (type === 'all') {
+        const allChecked = document.getElementById('filter_all').checked;
+        document.querySelectorAll('.zone-filter').forEach(cb => cb.checked = allChecked);
+    }
+    renderPlaces();
+}
+
+// Initial render
+renderPlaces();
+</script>
+{% endblock %}

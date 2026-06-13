@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-4"><i class="bi bi-speedometer2"></i> Safety Dashboard</h2>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card card-safety p-3 text-center">
+                <i class="bi bi-map text-primary" style="font-size: 1.8rem;"></i>
+                <h3 class="fw-bold mt-2">{{ total_journeys }}</h3>
+                <small class="text-muted">Total Journeys</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-safety p-3 text-center">
+                <i class="bi bi-broadcast text-success" style="font-size: 1.8rem;"></i>
+                <h3 class="fw-bold mt-2 text-success">{{ active_journey_count }}</h3>
+                <small class="text-muted">Active Journeys</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-safety p-3 text-center">
+                <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 1.8rem;"></i>
+                <h3 class="fw-bold mt-2 text-danger">{{ sos_alert_count }}</h3>
+                <small class="text-muted">Active SOS Alerts</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-safety p-3 text-center">
+                <i class="bi bi-graph-up text-info" style="font-size: 1.8rem;"></i>
+                <h3 class="fw-bold mt-2">{{ avg_safety_score|floatformat:1 }}</h3>
+                <small class="text-muted">Avg Safety Score</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card card-safety p-3 text-center">
+                <i class="bi bi-exclamation-triangle text-warning" style="font-size: 1.5rem;"></i>
+                <h4 class="fw-bold mt-2">{{ total_crimes }}</h4>
+                <small class="text-muted">Crime Reports</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-safety p-3 text-center">
+                <i class="bi bi-megaphone text-info" style="font-size: 1.5rem;"></i>
+                <h4 class="fw-bold mt-2">{{ total_reports }}</h4>
+                <small class="text-muted">Community Reports</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-safety p-3 text-center">
+                <i class="bi bi-shield-check text-success" style="font-size: 1.5rem;"></i>
+                <h4 class="fw-bold mt-2">{{ total_safe_zones }}</h4>
+                <small class="text-muted">Safe Zones</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card card-safety p-3 text-center">
+                <a href="{% url 'start_journey' %}" class="btn btn-safepath w-100">
+                    <i class="bi bi-play-circle"></i> Start Journey
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active SOS Alerts -->
+    {% if sos_alerts %}
+    <div class="card border-danger mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill"></i> Active SOS Alerts</h5>
+        </div>
+        <div class="card-body">
+            {% for alert in sos_alerts %}
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                <div>
+                    <strong>{{ alert.user.username }}</strong> - {{ alert.get_alert_type_display }}
+                    <br><small class="text-muted">Location: {{ alert.latitude|floatformat:4 }}, {{ alert.longitude|floatformat:4 }}</small>
+                </div>
+                <small class="text-muted">{{ alert.created_at|date:"M d, H:i" }}</small>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Active Journeys -->
+    {% if active_journeys %}
+    <div class="card card-safety mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="bi bi-broadcast"></i> Active Journeys</h5>
+        </div>
+        <div class="card-body">
+            {% for journey in active_journeys %}
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                <div>
+                    <strong>{{ journey.user.username }}</strong>: {{ journey.source_name }} → {{ journey.dest_name }}
+                    <br><small class="text-muted">ETA: {{ journey.eta_minutes }} min | Started: {{ journey.started_at|date:"H:i" }}</small>
+                </div>
+                <a href="{% url 'track_journey' journey.tracking_id %}" class="btn btn-sm btn-outline-success">Track</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Crime by Type -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold mb-3">Crime Reports by Type</h5>
+                {% for item in crime_by_type %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-capitalize">{{ item.crime_type }}</span>
+                        <span class="fw-bold">{{ item.count }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-danger" role="progressbar" data-width="{% widthratio item.count total_crimes 100 %}"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Safety Reports by Type -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold mb-3">Community Reports by Type</h5>
+                {% for item in reports_by_type %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-capitalize">{{ item.report_type }}</span>
+                        <span class="fw-bold">{{ item.count }}</span>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-warning" role="progressbar" data-width="{% widthratio item.count total_reports 100 %}"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="row g-4 mt-2">
+        <div class="col-md-6">
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold mb-3">Recent Crime Reports</h5>
+                <div class="list-group list-group-flush">
+                    {% for crime in recent_crimes %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <span class="badge bg-danger me-2">{{ crime.get_crime_type_display }}</span>
+                                {{ crime.title|truncatewords:8 }}
+                            </div>
+                            <small class="text-muted">{{ crime.date_reported|date:"M d" }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold mb-3">Recent Emergency Alerts</h5>
+                <div class="list-group list-group-flush">
+                    {% for alert in recent_alerts %}
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <span class="badge {% if alert.status == 'active' %}bg-danger{% else %}bg-secondary{% endif %} me-2">
+                                    {{ alert.get_alert_type_display }}
+                                </span>
+                                {{ alert.user.username }}
+                            </div>
+                            <small class="text-muted">{{ alert.created_at|date:"M d, H:i" }}</small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No emergency alerts yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
+    bar.style.width = bar.getAttribute('data-width') + '%';
+});
+</script>
+{% endblock %}

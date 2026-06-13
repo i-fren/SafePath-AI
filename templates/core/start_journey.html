@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Start Journey{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card card-safety p-4">
+                <h3 class="fw-bold mb-4"><i class="bi bi-play-circle text-success"></i> Start a Safe Journey</h3>
+                <p class="text-muted">Start a tracked journey. Your trusted contacts can follow your progress in real-time.</p>
+                
+                <form method="post" id="journeyForm">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold"><i class="bi bi-geo-alt text-success"></i> Source</label>
+                            <input type="text" class="form-control" id="sourceDisplay" placeholder="Click map to set source">
+                            <input type="hidden" name="source_lat" id="source_lat">
+                            <input type="hidden" name="source_lng" id="source_lng">
+                            <input type="hidden" name="source_name" id="source_name">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold"><i class="bi bi-geo-alt-fill text-danger"></i> Destination</label>
+                            <input type="text" class="form-control" id="destDisplay" placeholder="Click map to set destination">
+                            <input type="hidden" name="dest_lat" id="dest_lat">
+                            <input type="hidden" name="dest_lng" id="dest_lng">
+                            <input type="hidden" name="dest_name" id="dest_name">
+                        </div>
+                    </div>
+
+                    <div class="my-3">
+                        <div id="journeyMap" style="height: 300px; border-radius: 12px;"></div>
+                        <small class="text-muted">Click map: 1st click = Source, 2nd click = Destination</small>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold"><i class="bi bi-alarm"></i> Check-In Timer</label>
+                            <select class="form-select" name="checkin_interval">
+                                <option value="0">Disabled</option>
+                                <option value="15">Every 15 minutes</option>
+                                <option value="30">Every 30 minutes</option>
+                                <option value="60">Every 60 minutes</option>
+                            </select>
+                            <small class="text-muted">You'll be asked to confirm safety periodically</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold"><i class="bi bi-clock"></i> Estimated Time (minutes)</label>
+                            <input type="number" class="form-control" name="eta_minutes" value="30" min="5" max="240">
+                        </div>
+                    </div>
+
+                    {% if contacts %}
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold"><i class="bi bi-people"></i> Share With Trusted Contacts</label>
+                        <div class="row g-2">
+                            {% for contact in contacts %}
+                            <div class="col-md-6">
+                                <div class="form-check card p-2">
+                                    <input class="form-check-input" type="checkbox" name="contacts" value="{{ contact.id }}" id="contact_{{ contact.id }}" checked>
+                                    <label class="form-check-label" for="contact_{{ contact.id }}">
+                                        <strong>{{ contact.name }}</strong><br>
+                                        <small class="text-muted">{{ contact.phone }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> No trusted contacts added. 
+                        <a href="{% url 'add_trusted_contact' %}">Add contacts</a> to enable emergency notifications.
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-safepath btn-lg w-100" id="startBtn">
+                        <i class="bi bi-play-fill"></i> Start Journey
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const jMap = L.map('journeyMap').setView([31.5497, 74.3436], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap'
+}).addTo(jMap);
+
+let srcMarker = null, dstMarker = null, clicks = 0;
+
+jMap.on('click', function(e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lng = e.latlng.lng.toFixed(6);
+    if (clicks % 2 === 0) {
+        if (srcMarker) jMap.removeLayer(srcMarker);
+        srcMarker = L.marker([lat, lng], {}).addTo(jMap).bindPopup('Source').openPopup();
+        document.getElementById('source_lat').value = lat;
+        document.getElementById('source_lng').value = lng;
+        document.getElementById('source_name').value = `${lat}, ${lng}`;
+        document.getElementById('sourceDisplay').value = `${lat}, ${lng}`;
+    } else {
+        if (dstMarker) jMap.removeLayer(dstMarker);
+        dstMarker = L.marker([lat, lng], {}).addTo(jMap).bindPopup('Destination').openPopup();
+        document.getElementById('dest_lat').value = lat;
+        document.getElementById('dest_lng').value = lng;
+        document.getElementById('dest_name').value = `${lat}, ${lng}`;
+        document.getElementById('destDisplay').value = `${lat}, ${lng}`;
+    }
+    clicks++;
+});
+
+document.getElementById('journeyForm').addEventListener('submit', function(e) {
+    if (!document.getElementById('source_lat').value || !document.getElementById('dest_lat').value) {
+        e.preventDefault();
+        alert('Please set source and destination on the map.');
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}Journey Tracking{% endblock %}
+
+{% block extra_css %}
+<style>
+    .sos-float { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
+    .sos-float .btn { width: 70px; height: 70px; border-radius: 50%; font-size: 1.2rem; box-shadow: 0 4px 20px rgba(220,38,38,0.5); animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.7); } 70% { box-shadow: 0 0 0 15px rgba(220,38,38,0); } 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); } }
+    .checkin-banner { background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px; padding: 16px; border: 1px solid #f59e0b; display: none; }
+    .checkin-banner.show { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row g-4">
+        <!-- Left Panel -->
+        <div class="col-lg-4">
+            <div class="card card-safety p-4 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="fw-bold mb-0"><i class="bi bi-broadcast text-success"></i> Journey</h4>
+                    <span class="badge {% if journey.status == 'active' %}bg-success{% elif journey.status == 'sos' %}bg-danger{% else %}bg-secondary{% endif %} fs-6">
+                        {{ journey.get_status_display }}
+                    </span>
+                </div>
+                <p class="mb-1"><strong>From:</strong> {{ journey.source_name|default:"Source" }}</p>
+                <p class="mb-1"><strong>To:</strong> {{ journey.dest_name|default:"Destination" }}</p>
+                <p class="mb-1"><strong>ETA:</strong> {{ journey.eta_minutes }} minutes</p>
+                <p class="mb-1"><strong>Check-in:</strong> {% if journey.checkin_interval > 0 %}Every {{ journey.checkin_interval }} min{% else %}Disabled{% endif %}</p>
+                <p class="mb-3"><strong>Started:</strong> {{ journey.started_at|date:"M d, H:i" }}</p>
+
+                <!-- Share Tracking Link -->
+                <div class="bg-light p-3 rounded-3 mb-3">
+                    <label class="form-label small fw-semibold">Share Tracking Link:</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-sm" id="trackingLink" 
+                               value="{{ request.scheme }}://{{ request.get_host }}{% url 'track_journey' journey.tracking_id %}" readonly>
+                        <button class="btn btn-outline-primary btn-sm" onclick="copyLink()">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+
+                {% if journey.status == 'active' %}
+                <!-- Actions -->
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="checkIn()">
+                        <i class="bi bi-check-circle"></i> I'm Safe (Check-In)
+                    </button>
+                    <a href="{% url 'complete_journey' journey.tracking_id %}" class="btn btn-primary" 
+                       onclick="return confirm('Confirm you have arrived safely?')">
+                        <i class="bi bi-flag-fill"></i> Confirm Arrival
+                    </a>
+                    <button class="btn btn-danger" onclick="triggerSOS()">
+                        <i class="bi bi-exclamation-triangle-fill"></i> SOS Emergency
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Check-in Banner -->
+            <div class="checkin-banner mb-3" id="checkinBanner">
+                <h6 class="fw-bold"><i class="bi bi-alarm text-warning"></i> Check-In Required!</h6>
+                <p class="small mb-2">Are you safe? Please confirm.</p>
+                <button class="btn btn-success btn-sm" onclick="checkIn()">✓ I'm Safe</button>
+                <button class="btn btn-danger btn-sm" onclick="triggerSOS()">✗ Need Help</button>
+            </div>
+
+            <!-- Nearby Safe Zones -->
+            <div class="card card-safety p-3">
+                <h6 class="fw-bold"><i class="bi bi-shield-check text-primary"></i> Nearby Safe Places</h6>
+                <div id="nearbyList" class="small"></div>
+            </div>
+        </div>
+
+        <!-- Map -->
+        <div class="col-lg-8">
+            <div id="map" style="height: 600px; border-radius: 16px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- SOS Float Button -->
+{% if journey.status == 'active' %}
+<div class="sos-float">
+    <button class="btn btn-danger" onclick="triggerSOS()" title="SOS Emergency">
+        <i class="bi bi-exclamation-triangle-fill"></i><br><small>SOS</small>
+    </button>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const map = L.map('map').setView([{{ journey.current_lat|default:journey.source_lat }}, {{ journey.current_lng|default:journey.source_lng }}], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+// Source & Destination markers
+L.marker([{{ journey.source_lat }}, {{ journey.source_lng }}], {}).addTo(map).bindPopup('<b>Start</b>');
+L.marker([{{ journey.dest_lat }}, {{ journey.dest_lng }}], {}).addTo(map).bindPopup('<b>Destination</b>');
+
+// Current location marker
+let currentMarker = L.circleMarker([{{ journey.current_lat|default:journey.source_lat }}, {{ journey.current_lng|default:journey.source_lng }}], {
+    radius: 10, fillColor: '#10b981', color: '#fff', weight: 3, fillOpacity: 1
+}).addTo(map).bindPopup('Current Location');
+
+// Safe zones
+{% for zone in safe_zones %}
+L.circleMarker([{{ zone.latitude }}, {{ zone.longitude }}], {
+    radius: 6, fillColor: '#3b82f6', color: '#fff', weight: 2, fillOpacity: 0.7
+}).addTo(map).bindPopup('<b>{{ zone.name }}</b><br>{{ zone.get_zone_type_display }}');
+{% endfor %}
+
+// Fit map bounds
+map.fitBounds([[{{ journey.source_lat }}, {{ journey.source_lng }}], [{{ journey.dest_lat }}, {{ journey.dest_lng }}]], {padding: [50, 50]});
+
+// Live location tracking
+{% if journey.status == 'active' %}
+let watchId = null;
+if (navigator.geolocation) {
+    watchId = navigator.geolocation.watchPosition(function(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        currentMarker.setLatLng([lat, lng]);
+        
+        // Send location update to server
+        fetch('/api/journey/{{ journey.tracking_id }}/location/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({latitude: lat, longitude: lng, accuracy: pos.coords.accuracy})
+        }).then(r => r.json()).then(data => {
+            if (data.deviation_detected) {
+                showDeviationWarning(data.deviation_distance);
+            }
+        });
+    }, null, {enableHighAccuracy: true, maximumAge: 10000, timeout: 5000});
+}
+
+// Check-in timer
+{% if journey.checkin_interval > 0 %}
+const checkinInterval = {{ journey.checkin_interval }} * 60 * 1000;
+setTimeout(() => {
+    document.getElementById('checkinBanner').classList.add('show');
+}, checkinInterval);
+setInterval(() => {
+    document.getElementById('checkinBanner').classList.add('show');
+}, checkinInterval);
+{% endif %}
+{% endif %}
+
+function checkIn() {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        fetch('/api/journey/{{ journey.tracking_id }}/checkin/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude, is_safe: true})
+        }).then(r => r.json()).then(data => {
+            document.getElementById('checkinBanner').classList.remove('show');
+            alert('✓ Check-in successful! Stay safe.');
+        });
+    }, function() {
+        fetch('/api/journey/{{ journey.tracking_id }}/checkin/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({is_safe: true})
+        }).then(() => {
+            document.getElementById('checkinBanner').classList.remove('show');
+            alert('✓ Check-in successful!');
+        });
+    });
+}
+
+function triggerSOS() {
+    if (!confirm('⚠️ TRIGGER SOS EMERGENCY?\n\nThis will alert all your trusted contacts with your current location.')) return;
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        fetch('/api/sos/trigger/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude, message: 'SOS from journey!'})
+        }).then(r => r.json()).then(data => {
+            alert('🚨 SOS SENT! ' + data.notifications.length + ' contacts notified.\n\nEmergency: Police 15 | Rescue 1122');
+            window.location.href = '/sos/';
+        });
+    }, function() {
+        fetch('/api/sos/trigger/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({latitude: {{ journey.current_lat|default:journey.source_lat }}, longitude: {{ journey.current_lng|default:journey.source_lng }}, message: 'SOS from journey!'})
+        }).then(r => r.json()).then(data => {
+            alert('🚨 SOS SENT! Contacts notified.');
+            window.location.href = '/sos/';
+        });
+    });
+}
+
+function showDeviationWarning(distance) {
+    if (confirm('⚠️ ROUTE DEVIATION DETECTED\n\nYou are ' + Math.round(distance) + 'm away from your planned route.\n\nAre you safe?')) {
+        fetch('/api/journey/{{ journey.tracking_id }}/deviation-safe/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+            body: JSON.stringify({response: 'I am safe, changed route intentionally'})
+        });
+    } else {
+        triggerSOS();
+    }
+}
+
+function copyLink() {
+    const link = document.getElementById('trackingLink');
+    link.select();
+    document.execCommand('copy');
+    alert('Tracking link copied! Share it with your trusted contacts.');
+}
+
+// Load nearby places
+fetch('/api/nearby-places/?lat={{ journey.current_lat|default:journey.source_lat }}&lng={{ journey.current_lng|default:journey.source_lng }}&limit=5')
+    .then(r => r.json()).then(data => {
+        let html = '';
+        data.places.forEach(p => {
+            html += `<div class="border-bottom py-2"><strong>${p.name}</strong><br><small class="text-muted">${p.type_display} • ${p.distance_km} km away</small></div>`;
+        });
+        document.getElementById('nearbyList').innerHTML = html || '<p class="text-muted">No nearby places found</p>';
+    });
+
+function getCookie(name) {
+    let v = null;
+    if (document.cookie) {
+        document.cookie.split(';').forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+        });
+    }
+    return v;
+}
+</script>
+{% endblock %}

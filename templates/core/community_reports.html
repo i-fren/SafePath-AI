@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+{% block title %}Community Reports{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold"><i class="bi bi-megaphone"></i> Community Safety Reports</h2>
+        <a href="{% url 'submit_report' %}" class="btn btn-safepath">
+            <i class="bi bi-plus-circle"></i> Submit Report
+        </a>
+    </div>
+    
+    <p class="text-muted mb-4">Community-submitted safety reports help keep everyone safe. Report harassment, unsafe areas, broken streetlights, and suspicious activity.</p>
+
+    <!-- Filters -->
+    <div class="card card-safety p-3 mb-4">
+        <div class="row g-2 align-items-center">
+            <div class="col-md-3">
+                <select class="form-select" id="filterType">
+                    <option value="all">All Types</option>
+                    <option value="harassment">Harassment</option>
+                    <option value="unsafe_area">Unsafe Area</option>
+                    <option value="broken_light">Broken Streetlight</option>
+                    <option value="suspicious">Suspicious Activity</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" id="filterStatus">
+                    <option value="all">All Status</option>
+                    <option value="unresolved">Unresolved</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Map of Reports -->
+    <div id="reportsMap" style="height: 350px; border-radius: 16px;" class="mb-4"></div>
+
+    <!-- Reports List -->
+    <div class="row g-3">
+        {% for report in reports %}
+        <div class="col-md-6 report-item" data-type="{{ report.report_type }}" data-resolved="{{ report.is_resolved }}">
+            <div class="card card-safety p-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge 
+                            {% if report.report_type == 'harassment' %}bg-danger
+                            {% elif report.report_type == 'unsafe_area' %}bg-warning
+                            {% elif report.report_type == 'broken_light' %}bg-info
+                            {% elif report.report_type == 'suspicious' %}bg-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ report.get_report_type_display }}
+                        </span>
+                        {% if report.is_resolved %}
+                        <span class="badge bg-success">Resolved</span>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">{{ report.date_reported|date:"M d, Y" }}</small>
+                </div>
+                <h6 class="mt-2 mb-1">{{ report.title }}</h6>
+                <p class="text-muted small mb-2">{{ report.description|truncatewords:30 }}</p>
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        <i class="bi bi-geo-alt"></i> {{ report.latitude|floatformat:4 }}, {{ report.longitude|floatformat:4 }}
+                    </small>
+                    <small class="text-muted">
+                        <i class="bi bi-hand-thumbs-up"></i> {{ report.upvotes }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-safety p-5 text-center">
+                <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-3">No reports yet. Be the first to report a safety concern.</p>
+                <a href="{% url 'submit_report' %}" class="btn btn-safepath">Submit Report</a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Reports map
+const reportsMap = L.map('reportsMap').setView([31.5497, 74.3436], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(reportsMap);
+
+{% for report in reports %}
+L.circleMarker([{{ report.latitude }}, {{ report.longitude }}], {
+    radius: 8,
+    fillColor: '{% if report.report_type == "harassment" %}#dc2626{% elif report.report_type == "unsafe_area" %}#f59e0b{% elif report.report_type == "broken_light" %}#0ea5e9{% else %}#6b7280{% endif %}',
+    color: '#fff',
+    weight: 2,
+    fillOpacity: 0.7
+}).addTo(reportsMap).bindPopup('<b>{{ report.title }}</b><br>{{ report.get_report_type_display }}');
+{% endfor %}
+
+// Filters
+document.getElementById('filterType').addEventListener('change', filterReports);
+document.getElementById('filterStatus').addEventListener('change', filterReports);
+
+function filterReports() {
+    const type = document.getElementById('filterType').value;
+    const status = document.getElementById('filterStatus').value;
+    
+    document.querySelectorAll('.report-item').forEach(item => {
+        let show = true;
+        if (type !== 'all' && item.dataset.type !== type) show = false;
+        if (status === 'resolved' && item.dataset.resolved !== 'True') show = false;
+        if (status === 'unresolved' && item.dataset.resolved !== 'False') show = false;
+        item.style.display = show ? 'block' : 'none';
+    });
+}
+</script>
+{% endblock %}
