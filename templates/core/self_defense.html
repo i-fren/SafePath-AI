@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% block title %}Self Defense Guides{% endblock %}
+
+{% block extra_css %}
+<style>
+    .defense-card { border-left: 4px solid #7c3aed; cursor: pointer; transition: all 0.3s; }
+    .defense-card:hover { transform: translateX(5px); border-left-color: #ec4899; }
+    .defense-card .step { width: 32px; height: 32px; border-radius: 50%; background: #7c3aed; color: white; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; }
+    .scenario-badge { background: linear-gradient(135deg, #7c3aed, #ec4899); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+    .guide-detail { display: none; }
+    .guide-detail.show { display: block; animation: fadeIn 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-2"><i class="bi bi-person-arms-up text-primary"></i> Self-Defense Quick Guides</h2>
+    <p class="text-muted mb-4">30-second techniques for real emergency scenarios. Practice these regularly so they become instinct.</p>
+
+    <div class="alert alert-warning mb-4">
+        <i class="bi bi-exclamation-triangle"></i> <strong>Remember:</strong> Your safety comes first. Running away is ALWAYS the best option. Use these only as last resort when escape is not possible.
+    </div>
+
+    <div class="row g-4">
+        <!-- Scenario 1: Wrist Grab -->
+        <div class="col-md-6">
+            <div class="card card-safety defense-card p-4 h-100" onclick="toggleGuide('wrist')">
+                <span class="scenario-badge mb-2">COMMON SCENARIO</span>
+                <h5 class="fw-bold">Someone Grabs Your Wrist</h5>
+                <p class="text-muted small mb-0">How to break free in 2 seconds</p>
+                <div class="guide-detail mt-3" id="guide-wrist">
+                    <hr>
+                    <div class="mb-3">
+                        <span class="step">1</span>
+                        <strong class="ms-2">Rotate toward the thumb</strong>
+                        <p class="small text-muted ms-5 mb-0">The thumb is the weakest point of any grip. Pull your arm toward their thumb side — NOT away from their fingers.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">2</span>
+                        <strong class="ms-2">Yank sharply and fast</strong>
+                        <p class="small text-muted ms-5 mb-0">Don't pull slowly — one quick, sharp jerk breaks the grip. Use your entire body weight, not just arm strength.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">3</span>
+                        <strong class="ms-2">Step back immediately</strong>
+                        <p class="small text-muted ms-5 mb-0">Create distance. Turn and RUN. Scream "FIRE" (people respond faster to fire than help).</p>
+                    </div>
+                    <div class="alert alert-info small mt-2 mb-0">
+                        <strong>Pro tip:</strong> If both wrists are grabbed, clasp your hands together, then push UP and OUT through the gap between their arms.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenario 2: Grabbed from Behind -->
+        <div class="col-md-6">
+            <div class="card card-safety defense-card p-4 h-100" onclick="toggleGuide('behind')">
+                <span class="scenario-badge mb-2">HIGH DANGER</span>
+                <h5 class="fw-bold">Grabbed from Behind (Bear Hug)</h5>
+                <p class="text-muted small mb-0">Break free from a rear hold</p>
+                <div class="guide-detail mt-3" id="guide-behind">
+                    <hr>
+                    <div class="mb-3">
+                        <span class="step">1</span>
+                        <strong class="ms-2">Drop your weight DOWN</strong>
+                        <p class="small text-muted ms-5 mb-0">Bend your knees and drop suddenly. This makes you heavier and harder to hold. Widen your stance.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">2</span>
+                        <strong class="ms-2">Stomp on their foot HARD</strong>
+                        <p class="small text-muted ms-5 mb-0">Use your heel on their instep. The small bones in feet cause extreme pain when stomped.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">3</span>
+                        <strong class="ms-2">Elbow strike to ribs/stomach</strong>
+                        <p class="small text-muted ms-5 mb-0">Drive your elbow backward into their solar plexus (center of stomach). Repeat rapidly.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">4</span>
+                        <strong class="ms-2">Head-butt backward</strong>
+                        <p class="small text-muted ms-5 mb-0">Slam the back of your head into their nose/face. Then RUN.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenario 3: Followed on Street -->
+        <div class="col-md-6">
+            <div class="card card-safety defense-card p-4 h-100" onclick="toggleGuide('followed')">
+                <span class="scenario-badge mb-2">MOST COMMON</span>
+                <h5 class="fw-bold">Being Followed on the Street</h5>
+                <p class="text-muted small mb-0">What to do before it escalates</p>
+                <div class="guide-detail mt-3" id="guide-followed">
+                    <hr>
+                    <div class="mb-3">
+                        <span class="step">1</span>
+                        <strong class="ms-2">Confirm you're being followed</strong>
+                        <p class="small text-muted ms-5 mb-0">Cross the street. If they cross too, make another turn. Three turns in the same direction = confirmation.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">2</span>
+                        <strong class="ms-2">Enter a populated place</strong>
+                        <p class="small text-muted ms-5 mb-0">Walk into any shop, restaurant, mosque, or petrol station. Tell the staff someone is following you.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">3</span>
+                        <strong class="ms-2">Call someone and SPEAK LOUDLY</strong>
+                        <p class="small text-muted ms-5 mb-0">Call anyone — describe the person following you out loud: "Han Abu, ek banda mere peeche aa raha hai, neeli shirt pehni hai..."</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">4</span>
+                        <strong class="ms-2">NEVER go home</strong>
+                        <p class="small text-muted ms-5 mb-0">Do NOT lead them to your house. Go to a police station, hospital, or any 24/7 public area.</p>
+                    </div>
+                    <div class="alert alert-danger small mt-2 mb-0">
+                        <strong>SafePath Tip:</strong> Activate your journey tracking + share link with contacts. Use the Fake Call feature for an excuse to leave.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenario 4: In a Taxi/Rickshaw -->
+        <div class="col-md-6">
+            <div class="card card-safety defense-card p-4 h-100" onclick="toggleGuide('taxi')">
+                <span class="scenario-badge mb-2">PAKISTAN SPECIFIC</span>
+                <h5 class="fw-bold">Unsafe Situation in Taxi/Rickshaw</h5>
+                <p class="text-muted small mb-0">If the driver takes wrong route or behaves inappropriately</p>
+                <div class="guide-detail mt-3" id="guide-taxi">
+                    <hr>
+                    <div class="mb-3">
+                        <span class="step">1</span>
+                        <strong class="ms-2">Speak loudly on phone</strong>
+                        <p class="small text-muted ms-5 mb-0">"Bhai mera driver galat raste pe jaa raha hai. Number plate [READ IT OUT]. Main is waqt [LOCATION] pe hun."</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">2</span>
+                        <strong class="ms-2">Demand to stop at a busy area</strong>
+                        <p class="small text-muted ms-5 mb-0">"Yahan rokein" — point at any shop, petrol pump, or traffic signal with people around.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">3</span>
+                        <strong class="ms-2">Create a scene if ignored</strong>
+                        <p class="small text-muted ms-5 mb-0">Start honking from back seat, bang on windows to attract attention of other vehicles. Scream if needed.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">4</span>
+                        <strong class="ms-2">Exit at any red light/stop</strong>
+                        <p class="small text-muted ms-5 mb-0">When vehicle slows at a signal, open door and exit quickly. Don't worry about fare — your safety matters more.</p>
+                    </div>
+                    <div class="alert alert-info small mt-2 mb-0">
+                        <strong>Prevention:</strong> Always log vehicle details in SafePath's Transport Verify feature BEFORE getting in. Share plate number with contacts.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenario 5: Phone Snatching -->
+        <div class="col-md-6">
+            <div class="card card-safety defense-card p-4 h-100" onclick="toggleGuide('snatch')">
+                <span class="scenario-badge mb-2">LAHORE/KARACHI</span>
+                <h5 class="fw-bold">Phone/Bag Snatching Attempt</h5>
+                <p class="text-muted small mb-0">What to do during and after</p>
+                <div class="guide-detail mt-3" id="guide-snatch">
+                    <hr>
+                    <div class="mb-3">
+                        <span class="step">1</span>
+                        <strong class="ms-2">LET IT GO if they have a weapon</strong>
+                        <p class="small text-muted ms-5 mb-0">No phone is worth your life. If they show a knife or gun, give the item immediately. Do NOT resist.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">2</span>
+                        <strong class="ms-2">If no weapon: grip and scream</strong>
+                        <p class="small text-muted ms-5 mb-0">Hold the strap with both hands close to your body. Scream "CHOR! CHOR!" as loud as possible.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">3</span>
+                        <strong class="ms-2">After snatching: remember details</strong>
+                        <p class="small text-muted ms-5 mb-0">Bike color, number plate (even partial), direction they went, how many people, clothing. Note IMMEDIATELY.</p>
+                    </div>
+                    <div class="mb-3">
+                        <span class="step">4</span>
+                        <strong class="ms-2">Report within 1 hour</strong>
+                        <p class="small text-muted ms-5 mb-0">Call 15 or go to nearest police station. CCTV footage is overwritten quickly — fast reporting matters.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scenario 6: Pressure Points -->
+        <div class="col-md-6">
+            <div class="card card-safety defense-card p-4 h-100" onclick="toggleGuide('pressure')">
+                <span class="scenario-badge mb-2">SELF DEFENSE</span>
+                <h5 class="fw-bold">Vulnerable Pressure Points</h5>
+                <p class="text-muted small mb-0">Where to strike for maximum effect</p>
+                <div class="guide-detail mt-3" id="guide-pressure">
+                    <hr>
+                    <p class="small text-muted">Target these areas to create pain and escape. Strike HARD and FAST, then RUN:</p>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <strong>👁️ Eyes</strong><br>
+                                <small class="text-muted">Poke/scratch — causes temporary blindness</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <strong>👃 Nose</strong><br>
+                                <small class="text-muted">Palm strike upward — extreme pain + tears</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <strong>🦵 Groin</strong><br>
+                                <small class="text-muted">Knee strike — incapacitates immediately</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <strong>🦶 Instep</strong><br>
+                                <small class="text-muted">Stomp hard — small bones break easily</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <strong>👂 Ears</strong><br>
+                                <small class="text-muted">Slap both ears hard — causes disorientation</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-2 text-center">
+                                <strong>🦴 Shin</strong><br>
+                                <small class="text-muted">Kick with shoe edge — very painful</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning small mt-3 mb-0">
+                        <strong>Key principle:</strong> SING method — Solar plexus, Instep, Nose, Groin. Strike in that order and RUN.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Everyday Items as Defense -->
+    <div class="card card-safety p-4 mt-4">
+        <h5 class="fw-bold"><i class="bi bi-bag"></i> Everyday Items You Can Use</h5>
+        <p class="text-muted small">Legal items that can help in self-defense situations:</p>
+        <div class="row g-3 mt-2">
+            <div class="col-md-2 col-4 text-center">
+                <div class="border rounded-3 p-2">🔑<br><small class="fw-bold">Keys</small><br><small class="text-muted">Between fingers</small></div>
+            </div>
+            <div class="col-md-2 col-4 text-center">
+                <div class="border rounded-3 p-2">🖊️<br><small class="fw-bold">Pen</small><br><small class="text-muted">Stab/poke</small></div>
+            </div>
+            <div class="col-md-2 col-4 text-center">
+                <div class="border rounded-3 p-2">☂️<br><small class="fw-bold">Umbrella</small><br><small class="text-muted">Swing/jab</small></div>
+            </div>
+            <div class="col-md-2 col-4 text-center">
+                <div class="border rounded-3 p-2">🧴<br><small class="fw-bold">Deodorant</small><br><small class="text-muted">Spray at eyes</small></div>
+            </div>
+            <div class="col-md-2 col-4 text-center">
+                <div class="border rounded-3 p-2">👜<br><small class="fw-bold">Heavy Bag</small><br><small class="text-muted">Swing hard</small></div>
+            </div>
+            <div class="col-md-2 col-4 text-center">
+                <div class="border rounded-3 p-2">👠<br><small class="fw-bold">Heel</small><br><small class="text-muted">Strike down</small></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleGuide(id) {
+    const el = document.getElementById('guide-' + id);
+    el.classList.toggle('show');
+}
+</script>
+{% endblock %}

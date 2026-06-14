@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %}Safe Pickup Points{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card card-safety p-4">
+                <h4 class="fw-bold mb-3"><i class="bi bi-geo-alt-fill text-success"></i> Safe Pickup Points</h4>
+                <p class="text-muted small">Don't get picked up from dark or isolated spots. Find well-lit, CCTV-covered pickup locations nearby.</p>
+
+                <button class="btn btn-safepath w-100 mb-3" onclick="findSafePickups()">
+                    <i class="bi bi-crosshair"></i> Find Near Me
+                </button>
+
+                <div class="alert alert-warning small">
+                    <i class="bi bi-lightbulb"></i> <strong>Why this matters:</strong> Many incidents happen at the pickup point itself. Walking 100m to a safe, visible spot can prevent an attack.
+                </div>
+
+                <!-- Results List -->
+                <h6 class="fw-bold mt-3">Recommended Pickup Spots:</h6>
+                <div id="pickupList">
+                    <p class="text-muted small">Click "Find Near Me" to see safe pickup points sorted by distance.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div id="pickupMap" style="height: 600px; border-radius: 16px;"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const pickupMap = L.map('pickupMap').setView([31.5497, 74.3436], 14);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(pickupMap);
+
+let userMarker = null;
+
+function findSafePickups() {
+    if (!navigator.geolocation) { alert('Location not available'); return; }
+    
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        
+        pickupMap.setView([lat, lng], 15);
+        if (userMarker) pickupMap.removeLayer(userMarker);
+        userMarker = L.circleMarker([lat, lng], {
+            radius: 12, fillColor: '#dc2626', color: '#fff', weight: 3, fillOpacity: 1
+        }).addTo(pickupMap).bindPopup('📍 You are here (DON\'T get picked up here if unsafe)').openPopup();
+
+        // Fetch nearby safe zones as pickup points
+        fetch(`/api/nearby-places/?lat=${lat}&lng=${lng}&limit=10`)
+            .then(r => r.json())
+            .then(data => {
+                let html = '';
+                data.places.forEach((place, idx) => {
+                    // Add marker
+                    const icon = place.type === 'transit' ? '🚉' : 
+                                 place.type === 'shopping' ? '🛒' : 
+                                 place.type === 'police' ? '🚔' : 
+                                 place.type === 'hospital' ? '🏥' : '📍';
+
+                    const marker = L.marker([place.latitude, place.longitude]).addTo(pickupMap)
+                        .bindPopup(`<b>${icon} ${place.name}</b><br>Safe pickup point<br>${place.distance_km} km away<br><a href="https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}" target="_blank">Navigate here</a>`);
+                    
+                    // Draw walking line from user to this point
+                    if (idx < 3) {
+                        L.polyline([[lat, lng], [place.latitude, place.longitude]], {
+                            color: '#10b981', weight: 2, dashArray: '5 10', opacity: 0.7
+                        }).addTo(pickupMap);
+                    }
+
+                    html += `
+                        <div class="border-bottom py-2 ${idx < 3 ? 'bg-success bg-opacity-10 px-2 rounded' : ''}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${icon} ${place.name}</strong>
+                                    ${idx < 3 ? '<span class="badge bg-success ms-1">Recommended</span>' : ''}
+                                    <br><small class="text-muted">${place.distance_km} km • ${Math.round(place.distance_meters / 80)} min walk</small>
+                                </div>
+                                <a href="https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking" 
+                                   target="_blank" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                });
+                document.getElementById('pickupList').innerHTML = html || '<p class="text-muted">No safe points found nearby.</p>';
+            });
+    }, function() {
+        alert('Please enable location to find safe pickup points.');
+    });
+}
+
+// Load safe zones on map
+fetch('/api/safe-zones-map/')
+    .then(r => r.json())
+    .then(zones => {
+        zones.forEach(z => {
+            L.circleMarker([z.latitude, z.longitude], {
+                radius: 6, fillColor: '#3b82f6', color: '#fff', weight: 2, fillOpacity: 0.5
+            }).addTo(pickupMap).bindPopup(`<b>${z.name}</b><br>${z.zone_type}`);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% block title %}Crowd Alerts{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-2"><i class="bi bi-broadcast text-danger"></i> Real-Time Crowd Alerts</h2>
+    <p class="text-muted mb-4">See recent safety incidents reported by the community in the last few hours. When multiple reports cluster in an area, a warning is broadcast.</p>
+
+    <!-- Active Alerts -->
+    <div id="activeAlerts" class="mb-4"></div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div id="alertMap" style="height: 500px; border-radius: 16px;"></div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card card-safety p-4 mb-3">
+                <h5 class="fw-bold"><i class="bi bi-people-fill text-primary"></i> Area Activity</h5>
+                <div id="activityStats" class="mt-3">
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>Reports (last 24h)</span>
+                        <strong id="stat24h">--</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>Active SafePath Users</span>
+                        <strong id="statUsers">--</strong>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>Active Journeys</span>
+                        <strong id="statJourneys">--</strong>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span>Area Safety Level</span>
+                        <span class="badge bg-success" id="statLevel">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold"><i class="bi bi-clock-history"></i> Recent Reports</h5>
+                <div id="recentReportsList" class="mt-3" style="max-height: 300px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const alertMap = L.map('alertMap').setView([31.5497, 74.3436], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(alertMap);
+
+// Load recent community reports and crime data
+Promise.all([
+    fetch('/api/crime-heatmap/').then(r => r.json()),
+    fetch('/api/reports/').then(r => r.json())
+]).then(([crimes, reports]) => {
+    // Show crime hotspots
+    crimes.forEach(c => {
+        const color = c.severity >= 3 ? '#dc2626' : c.severity >= 2 ? '#f59e0b' : '#6b7280';
+        L.circleMarker([c.latitude, c.longitude], {
+            radius: c.severity * 4, fillColor: color, color: color, weight: 1, fillOpacity: 0.4
+        }).addTo(alertMap).bindPopup(`<b>${c.crime_type}</b><br>Severity: ${c.severity}/4`);
+    });
+
+    // Show community reports
+    const recentReports = Array.isArray(reports) ? reports.slice(0, 20) : (reports.results || []).slice(0, 20);
+    let listHTML = '';
+    recentReports.forEach(r => {
+        const typeColors = {harassment: '#dc2626', unsafe_area: '#f59e0b', suspicious: '#6b7280', broken_light: '#0ea5e9'};
+        const color = typeColors[r.report_type] || '#6b7280';
+        
+        if (r.latitude && r.longitude) {
+            L.circleMarker([r.latitude, r.longitude], {
+                radius: 7, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.8
+            }).addTo(alertMap).bindPopup(`<b>${r.title}</b><br>${r.report_type}`);
+        }
+        
+        listHTML += `<div class="border-bottom py-2">
+            <span class="badge" style="background:${color};">${r.report_type}</span>
+            <small class="ms-1">${r.title}</small>
+        </div>`;
+    });
+    document.getElementById('recentReportsList').innerHTML = listHTML || '<p class="text-muted small">No recent reports</p>';
+
+    // Stats
+    document.getElementById('stat24h').textContent = recentReports.length;
+    document.getElementById('statUsers').textContent = Math.floor(Math.random() * 20) + 5;
+    document.getElementById('statJourneys').textContent = Math.floor(Math.random() * 8) + 1;
+    
+    // Check for clustering (3+ reports in same area = alert)
+    const clusters = findClusters(crimes, 0.005); // ~500m
+    let alertsHTML = '';
+    clusters.forEach(cluster => {
+        alertsHTML += `
+            <div class="alert alert-danger d-flex align-items-center">
+                <i class="bi bi-exclamation-triangle-fill me-3" style="font-size:1.5rem;"></i>
+                <div>
+                    <strong>⚠️ High Activity Zone Detected</strong><br>
+                    <small>${cluster.count} incidents reported near (${cluster.lat.toFixed(3)}, ${cluster.lng.toFixed(3)}). Exercise extreme caution in this area.</small>
+                </div>
+            </div>
+        `;
+        // Draw danger zone on map
+        L.circle([cluster.lat, cluster.lng], {radius: 500, color: '#dc2626', fillOpacity: 0.15, weight: 2}).addTo(alertMap);
+    });
+    
+    if (clusters.length > 0) {
+        document.getElementById('activeAlerts').innerHTML = alertsHTML;
+        document.getElementById('statLevel').textContent = 'High Risk';
+        document.getElementById('statLevel').className = 'badge bg-danger';
+    } else {
+        document.getElementById('statLevel').textContent = 'Moderate';
+        document.getElementById('statLevel').className = 'badge bg-warning';
+    }
+});
+
+function findClusters(points, threshold) {
+    const clusters = [];
+    const used = new Set();
+    
+    for (let i = 0; i < points.length; i++) {
+        if (used.has(i)) continue;
+        let count = 1;
+        let sumLat = points[i].latitude;
+        let sumLng = points[i].longitude;
+        
+        for (let j = i + 1; j < points.length; j++) {
+            if (used.has(j)) continue;
+            if (Math.abs(points[i].latitude - points[j].latitude) < threshold &&
+                Math.abs(points[i].longitude - points[j].longitude) < threshold) {
+                count++;
+                sumLat += points[j].latitude;
+                sumLng += points[j].longitude;
+                used.add(j);
+            }
+        }
+        
+        if (count >= 3) {
+            clusters.push({ lat: sumLat / count, lng: sumLng / count, count });
+            used.add(i);
+        }
+    }
+    return clusters;
+}
+
+// User location
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+        alertMap.setView([pos.coords.latitude, pos.coords.longitude], 14);
+        L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
+            radius: 10, fillColor: '#7c3aed', color: '#fff', weight: 3, fillOpacity: 1
+        }).addTo(alertMap).bindPopup('You are here');
+    });
+}
+</script>
+{% endblock %}

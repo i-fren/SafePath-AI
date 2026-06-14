@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+{% block title %}Legal Rights{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-2"><i class="bi bi-book text-primary"></i> Know Your Legal Rights</h2>
+    <p class="text-muted mb-4">Pakistani laws protect women from harassment, violence, and discrimination. Know your rights to take action.</p>
+
+    <!-- Quick Actions -->
+    <div class="row g-3 mb-5">
+        <div class="col-md-3 col-6">
+            <div class="card card-safety p-3 text-center h-100">
+                <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
+                <strong class="mt-2 d-block small">You CAN file FIR without a male guardian</strong>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card card-safety p-3 text-center h-100">
+                <i class="bi bi-camera-video text-danger" style="font-size: 2rem;"></i>
+                <strong class="mt-2 d-block small">Recording evidence is LEGAL for self-protection</strong>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card card-safety p-3 text-center h-100">
+                <i class="bi bi-telephone text-primary" style="font-size: 2rem;"></i>
+                <strong class="mt-2 d-block small">Police MUST register your FIR — refusal is illegal</strong>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card card-safety p-3 text-center h-100">
+                <i class="bi bi-clock text-warning" style="font-size: 2rem;"></i>
+                <strong class="mt-2 d-block small">No time limit to report sexual harassment</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Laws Section -->
+    <div class="row g-4">
+        <!-- Street Harassment -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4 h-100">
+                <h5 class="fw-bold text-danger"><i class="bi bi-exclamation-triangle"></i> Street Harassment & Eve Teasing</h5>
+                <div class="mt-3">
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <strong>PPC Section 509</strong><br>
+                        <small>Insulting modesty of a woman — verbal abuse, gestures, catcalling</small><br>
+                        <span class="badge bg-danger mt-1">Punishment: Up to 3 years + fine</span>
+                    </div>
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <strong>PPC Section 354-A</strong><br>
+                        <small>Assault or use of criminal force against woman — touching, groping</small><br>
+                        <span class="badge bg-danger mt-1">Punishment: Up to 2 years + fine</span>
+                    </div>
+                    <div class="bg-light p-3 rounded-3">
+                        <strong>Punjab Protection Against Harassment Act 2010</strong><br>
+                        <small>Covers stalking, following, unwanted contact, repeated messaging</small><br>
+                        <span class="badge bg-danger mt-1">Punishment: Up to 3 years + Rs. 500,000 fine</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workplace Harassment -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4 h-100">
+                <h5 class="fw-bold text-warning"><i class="bi bi-building"></i> Workplace Harassment</h5>
+                <div class="mt-3">
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <strong>Protection Against Harassment at Workplace Act 2010</strong><br>
+                        <small>Every organization MUST have a harassment committee. Your employer is legally required to protect you.</small><br>
+                        <span class="badge bg-warning text-dark mt-1">Committee must act within 30 days</span>
+                    </div>
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <strong>Your Rights:</strong>
+                        <ul class="small mb-0 mt-1">
+                            <li>File complaint with internal committee</li>
+                            <li>If no committee exists, file with Ombudsperson</li>
+                            <li>Your identity must be kept confidential</li>
+                            <li>Employer cannot fire you for reporting</li>
+                            <li>Appeal to Governor within 30 days if unsatisfied</li>
+                        </ul>
+                    </div>
+                    <div class="bg-light p-3 rounded-3">
+                        <strong>Federal Ombudsperson</strong><br>
+                        <small>Phone: 051-9224835 | Email: registrar@fospah.gov.pk</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Domestic Violence -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4 h-100">
+                <h5 class="fw-bold text-purple" style="color: #7c3aed;"><i class="bi bi-house-x"></i> Domestic Violence</h5>
+                <div class="mt-3">
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <strong>Punjab Protection of Women Against Violence Act 2016</strong><br>
+                        <small>Covers physical, emotional, psychological, and economic abuse by family members</small><br>
+                        <span class="badge bg-primary mt-1">Protection order within 7 days</span>
+                    </div>
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <strong>Your Rights:</strong>
+                        <ul class="small mb-0 mt-1">
+                            <li>Apply for protection order (court restrains abuser)</li>
+                            <li>Right to residence — you CANNOT be thrown out</li>
+                            <li>Right to monetary relief and maintenance</li>
+                            <li>GPS tracking can be ordered for repeat abusers</li>
+                            <li>Violation of protection order: 1 year imprisonment</li>
+                        </ul>
+                    </div>
+                    <div class="bg-light p-3 rounded-3">
+                        <strong>Punjab Women Protection Authority</strong><br>
+                        <small>Helpline: 0800-22-444 | Punjab Safe Cities: 0800-00-786</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cybercrime -->
+        <div class="col-md-6">
+            <div class="card card-safety p-4 h-100">
+                <h5 class="fw-bold text-info"><i class="bi bi-phone"></i> Cyber Harassment & Online Abuse</h5>
+                <div class="mt-3">
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <strong>PECA 2016 - Section 21</strong><br>
+                        <small>Sending obscene/threatening messages, fake profiles, non-consensual sharing of photos</small><br>
+                        <span class="badge bg-info mt-1">Punishment: Up to 5 years + Rs. 10 million fine</span>
+                    </div>
+                    <div class="bg-light p-3 rounded-3 mb-3">
+                        <strong>PECA 2016 - Section 24</strong><br>
+                        <small>Cyber stalking — repeated unwanted contact, monitoring, threats online</small><br>
+                        <span class="badge bg-info mt-1">Punishment: Up to 3 years + Rs. 1 million fine</span>
+                    </div>
+                    <div class="bg-light p-3 rounded-3">
+                        <strong>How to Report:</strong>
+                        <ul class="small mb-0 mt-1">
+                            <li>FIA Cyber Crime Wing: 051-9106384</li>
+                            <li>Report online: www.fia.gov.pk/ccw</li>
+                            <li>NR3C helpline: 1991</li>
+                            <li>Take screenshots BEFORE blocking</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- How to File FIR -->
+        <div class="col-12">
+            <div class="card card-safety p-4" style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); border: 1px solid #6ee7b7;">
+                <h5 class="fw-bold text-success"><i class="bi bi-file-earmark-text"></i> How to File an FIR (Step by Step)</h5>
+                <div class="row mt-3 g-3">
+                    <div class="col-md-2 col-4 text-center">
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width:50px;height:50px;font-weight:700;">1</div>
+                        <p class="small mt-2 fw-bold">Go to nearest police station</p>
+                    </div>
+                    <div class="col-md-2 col-4 text-center">
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width:50px;height:50px;font-weight:700;">2</div>
+                        <p class="small mt-2 fw-bold">Request the duty officer</p>
+                    </div>
+                    <div class="col-md-2 col-4 text-center">
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width:50px;height:50px;font-weight:700;">3</div>
+                        <p class="small mt-2 fw-bold">Give written statement</p>
+                    </div>
+                    <div class="col-md-2 col-4 text-center">
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width:50px;height:50px;font-weight:700;">4</div>
+                        <p class="small mt-2 fw-bold">Get FIR copy (your right)</p>
+                    </div>
+                    <div class="col-md-2 col-4 text-center">
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width:50px;height:50px;font-weight:700;">5</div>
+                        <p class="small mt-2 fw-bold">Note IO name & number</p>
+                    </div>
+                    <div class="col-md-2 col-4 text-center">
+                        <div class="rounded-circle bg-success text-white d-inline-flex align-items-center justify-content-center" style="width:50px;height:50px;font-weight:700;">6</div>
+                        <p class="small mt-2 fw-bold">Follow up in 14 days</p>
+                    </div>
+                </div>
+                <div class="alert alert-success mt-3 mb-0">
+                    <strong><i class="bi bi-exclamation-circle"></i> Important:</strong> If police refuse to file FIR, go to the SP/DSP office directly or file via Pakistan Citizen Portal (080011786). Refusal to register FIR is a criminal offense under law.
+                </div>
+            </div>
+        </div>
+
+        <!-- Helpline Directory -->
+        <div class="col-12">
+            <div class="card card-safety p-4">
+                <h5 class="fw-bold"><i class="bi bi-telephone-fill text-danger"></i> Helpline Directory</h5>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">Police Emergency</h6>
+                            <h4 class="fw-bold"><a href="tel:15" class="text-decoration-none">15</a></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">Rescue 1122</h6>
+                            <h4 class="fw-bold"><a href="tel:1122" class="text-decoration-none">1122</a></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">Women Helpline</h6>
+                            <h4 class="fw-bold"><a href="tel:1043" class="text-decoration-none">1043</a></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">FIA Cyber Crime</h6>
+                            <h4 class="fw-bold"><a href="tel:1991" class="text-decoration-none">1991</a></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">Edhi Foundation</h6>
+                            <h4 class="fw-bold"><a href="tel:115" class="text-decoration-none">115</a></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">Citizen Portal</h6>
+                            <h4 class="fw-bold"><a href="tel:080011786" class="text-decoration-none">080011786</a></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">Punjab Safe Cities</h6>
+                            <h4 class="fw-bold"><a href="tel:080000786" class="text-decoration-none">0800-00-786</a></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">Child Protection</h6>
+                            <h4 class="fw-bold"><a href="tel:1121" class="text-decoration-none">1121</a></h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4 col-6">
+                        <div class="border rounded-3 p-3 text-center">
+                            <h6 class="text-danger">Human Rights</h6>
+                            <h4 class="fw-bold"><a href="tel:1099" class="text-decoration-none">1099</a></h4>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% block title %}Calculator{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Disguise: Looks like a calculator app */
+    .calc-wrapper { max-width: 360px; margin: 0 auto; background: #1c1c1e; border-radius: 24px; padding: 20px; }
+    .calc-display { background: #000; border-radius: 12px; padding: 20px; text-align: right; margin-bottom: 12px; min-height: 80px; display: flex; align-items: flex-end; justify-content: flex-end; }
+    .calc-display .value { font-size: 2.5rem; color: white; font-weight: 300; font-family: -apple-system, sans-serif; }
+    .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .calc-btn { border: none; border-radius: 50%; width: 65px; height: 65px; font-size: 1.4rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: opacity 0.1s; }
+    .calc-btn:active { opacity: 0.6; }
+    .calc-btn.num { background: #333; color: white; }
+    .calc-btn.op { background: #ff9f0a; color: white; }
+    .calc-btn.func { background: #a5a5a5; color: black; }
+    .calc-btn.zero { grid-column: span 2; width: 100%; border-radius: 35px; justify-content: flex-start; padding-left: 25px; }
+    .real-app { display: none; }
+    .real-app.show { display: block; }
+    .disguise-active .navbar, .disguise-active .footer { display: none; }
+    .secret-hint { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); color: rgba(255,255,255,0.1); font-size: 0.6rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="disguiseLayer">
+    <!-- Fake Calculator (what attacker sees) -->
+    <div class="d-flex align-items-center justify-content-center" style="min-height: 85vh; background: #000;">
+        <div class="calc-wrapper">
+            <div class="calc-display">
+                <span class="value" id="calcDisplay">0</span>
+            </div>
+            <div class="calc-grid">
+                <button class="calc-btn func" onclick="calcFunc('AC')">AC</button>
+                <button class="calc-btn func" onclick="calcFunc('±')">±</button>
+                <button class="calc-btn func" onclick="calcFunc('%')">%</button>
+                <button class="calc-btn op" onclick="calcOp('÷')">÷</button>
+                
+                <button class="calc-btn num" onclick="calcNum('7')">7</button>
+                <button class="calc-btn num" onclick="calcNum('8')">8</button>
+                <button class="calc-btn num" onclick="calcNum('9')">9</button>
+                <button class="calc-btn op" onclick="calcOp('×')">×</button>
+                
+                <button class="calc-btn num" onclick="calcNum('4')">4</button>
+                <button class="calc-btn num" onclick="calcNum('5')">5</button>
+                <button class="calc-btn num" onclick="calcNum('6')">6</button>
+                <button class="calc-btn op" onclick="calcOp('-')">−</button>
+                
+                <button class="calc-btn num" onclick="calcNum('1')">1</button>
+                <button class="calc-btn num" onclick="calcNum('2')">2</button>
+                <button class="calc-btn num" onclick="calcNum('3')">3</button>
+                <button class="calc-btn op" onclick="calcOp('+')">+</button>
+                
+                <button class="calc-btn num zero" onclick="calcNum('0')">0</button>
+                <button class="calc-btn num" onclick="calcNum('.')">.</button>
+                <button class="calc-btn op" onclick="calcEquals()">=</button>
+            </div>
+        </div>
+        <span class="secret-hint">tap logo 5x for help</span>
+    </div>
+</div>
+
+<!-- REAL APP (Hidden until secret code entered) -->
+<div class="real-app" id="realApp">
+    <div class="container py-4">
+        <div class="text-center mb-4">
+            <span class="badge bg-success fs-6 p-2"><i class="bi bi-shield-lock-fill"></i> Disguise Mode Active</span>
+            <p class="text-muted mt-2 small">Press back or type "AC AC AC" in calculator to return to disguise</p>
+        </div>
+        
+        <div class="row g-3">
+            <div class="col-6">
+                <a href="{% url 'sos_page' %}" class="btn btn-danger w-100 py-4">
+                    <i class="bi bi-exclamation-triangle-fill" style="font-size:2rem;"></i><br>
+                    <strong>SOS</strong>
+                </a>
+            </div>
+            <div class="col-6">
+                <a href="{% url 'siren' %}" class="btn btn-warning w-100 py-4">
+                    <i class="bi bi-megaphone-fill" style="font-size:2rem;"></i><br>
+                    <strong>Siren</strong>
+                </a>
+            </div>
+            <div class="col-6">
+                <a href="{% url 'fake_call' %}" class="btn btn-success w-100 py-4">
+                    <i class="bi bi-telephone-fill" style="font-size:2rem;"></i><br>
+                    <strong>Fake Call</strong>
+                </a>
+            </div>
+            <div class="col-6">
+                <a href="{% url 'evidence_recorder' %}" class="btn btn-primary w-100 py-4">
+                    <i class="bi bi-record-circle" style="font-size:2rem;"></i><br>
+                    <strong>Record</strong>
+                </a>
+            </div>
+            <div class="col-12">
+                <button class="btn btn-outline-dark w-100 py-3" onclick="hideRealApp()">
+                    <i class="bi bi-calculator"></i> Return to Calculator Disguise
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Calculator logic (fully functional to look real)
+let calcValue = '0';
+let calcPrev = '';
+let calcOperator = '';
+let newNumber = true;
+
+function calcNum(n) {
+    if (newNumber) { calcValue = n; newNumber = false; }
+    else { calcValue = calcValue === '0' ? n : calcValue + n; }
+    document.getElementById('calcDisplay').textContent = calcValue;
+    checkSecretCode(n);
+}
+
+function calcOp(op) {
+    calcPrev = calcValue;
+    calcOperator = op;
+    newNumber = true;
+}
+
+function calcEquals() {
+    if (!calcPrev || !calcOperator) return;
+    const a = parseFloat(calcPrev);
+    const b = parseFloat(calcValue);
+    let result = 0;
+    switch(calcOperator) {
+        case '+': result = a + b; break;
+        case '-': result = a - b; break;
+        case '×': result = a * b; break;
+        case '÷': result = b !== 0 ? a / b : 'Error'; break;
+    }
+    calcValue = String(result);
+    document.getElementById('calcDisplay').textContent = calcValue;
+    calcPrev = '';
+    calcOperator = '';
+    newNumber = true;
+}
+
+function calcFunc(f) {
+    if (f === 'AC') { 
+        calcValue = '0'; calcPrev = ''; calcOperator = ''; newNumber = true;
+        document.getElementById('calcDisplay').textContent = '0';
+        acCount++;
+        if (acCount >= 3) { hideRealApp(); acCount = 0; }
+    }
+    else if (f === '±') { calcValue = String(-parseFloat(calcValue)); document.getElementById('calcDisplay').textContent = calcValue; }
+    else if (f === '%') { calcValue = String(parseFloat(calcValue) / 100); document.getElementById('calcDisplay').textContent = calcValue; }
+}
+
+// SECRET CODE: Type "911" or "1122" to reveal real app
+let secretBuffer = '';
+let acCount = 0;
+let logoTaps = 0;
+
+function checkSecretCode(n) {
+    secretBuffer += n;
+    if (secretBuffer.length > 6) secretBuffer = secretBuffer.slice(-6);
+    
+    // Secret codes that reveal the real app
+    if (secretBuffer.endsWith('911') || 
+        secretBuffer.endsWith('1122') || 
+        secretBuffer.endsWith('9999') ||
+        secretBuffer.endsWith('1043')) {
+        showRealApp();
+    }
+}
+
+function showRealApp() {
+    document.getElementById('disguiseLayer').style.display = 'none';
+    document.getElementById('realApp').classList.add('show');
+    secretBuffer = '';
+    if (navigator.vibrate) navigator.vibrate(100);
+}
+
+function hideRealApp() {
+    document.getElementById('realApp').classList.remove('show');
+    document.getElementById('disguiseLayer').style.display = 'block';
+    calcValue = '0';
+    document.getElementById('calcDisplay').textContent = '0';
+}
+
+// Also reveal by tapping top-left corner 5 times
+document.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('disguise-active');
+});
+</script>
+{% endblock %}

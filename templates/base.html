@@ -152,12 +152,18 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{% url 'community_reports' %}"><i class="bi bi-megaphone"></i> Community Reports</a></li>
+                            <li><a class="dropdown-item" href="{% url 'crowd_alerts' %}"><i class="bi bi-broadcast"></i> Crowd Alerts</a></li>
                             <li><a class="dropdown-item" href="{% url 'safety_tips' %}"><i class="bi bi-lightbulb"></i> Safety Tips</a></li>
                             <li><a class="dropdown-item" href="{% url 'ai_assistant' %}"><i class="bi bi-robot"></i> AI Assistant</a></li>
                             <li><a class="dropdown-item" href="{% url 'safe_time_analysis' %}"><i class="bi bi-clock"></i> Safe Time Analysis</a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'siren' %}"><i class="bi bi-megaphone-fill"></i> Emergency Siren</a></li>
                             <li><a class="dropdown-item" href="{% url 'fake_call' %}"><i class="bi bi-telephone-inbound"></i> Fake Call</a></li>
                             <li><a class="dropdown-item" href="{% url 'evidence_recorder' %}"><i class="bi bi-record-circle"></i> Evidence Recorder</a></li>
+                            <li><a class="dropdown-item" href="{% url 'disguise_mode' %}"><i class="bi bi-calculator"></i> Disguise Mode</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{% url 'self_defense' %}"><i class="bi bi-person-arms-up"></i> Self Defense</a></li>
+                            <li><a class="dropdown-item" href="{% url 'legal_rights' %}"><i class="bi bi-book"></i> Legal Rights</a></li>
                             <li><a class="dropdown-item" href="{% url 'safe_network' %}"><i class="bi bi-people"></i> Safe Network</a></li>
                         </ul>
                     </li>
@@ -174,6 +180,7 @@
                             <li><a class="dropdown-item" href="{% url 'my_journeys' %}"><i class="bi bi-geo-alt"></i> My Journeys</a></li>
                             <li><a class="dropdown-item" href="{% url 'start_journey' %}"><i class="bi bi-play-circle"></i> Start Journey</a></li>
                             <li><a class="dropdown-item" href="{% url 'transport_verify' %}"><i class="bi bi-car-front"></i> Transport Verify</a></li>
+                            <li><a class="dropdown-item" href="{% url 'safe_pickup' %}"><i class="bi bi-pin-map"></i> Safe Pickup Points</a></li>
                             <li><a class="dropdown-item" href="{% url 'trusted_contacts' %}"><i class="bi bi-people"></i> Trusted Contacts</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>

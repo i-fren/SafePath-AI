@@ -49,4 +49,22 @@ urlpatterns = [
 
     # Safe Time Analysis
     path('safe-time/', views.safe_time_analysis, name='safe_time_analysis'),
+
+    # Siren & Flashlight
+    path('siren/', views.siren, name='siren'),
+
+    # Legal Rights
+    path('legal-rights/', views.legal_rights, name='legal_rights'),
+
+    # Self Defense
+    path('self-defense/', views.self_defense, name='self_defense'),
+
+    # Panic Disguise Mode
+    path('disguise/', views.disguise_mode, name='disguise_mode'),
+
+    # Safe Pickup Points
+    path('safe-pickup/', views.safe_pickup, name='safe_pickup'),
+
+    # Crowd Alerts
+    path('crowd-alerts/', views.crowd_alerts, name='crowd_alerts'),
 ]

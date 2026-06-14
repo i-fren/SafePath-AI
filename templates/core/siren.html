@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% block title %}Emergency Siren{% endblock %}
+
+{% block extra_css %}
+<style>
+    .siren-page { min-height: 80vh; display: flex; align-items: center; justify-content: center; }
+    .siren-btn {
+        width: 220px; height: 220px; border-radius: 50%;
+        background: linear-gradient(135deg, #dc2626, #7f1d1d);
+        border: 10px solid #fca5a5; color: white;
+        font-size: 1.5rem; font-weight: 700; cursor: pointer;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        transition: transform 0.2s;
+    }
+    .siren-btn:hover { transform: scale(1.05); }
+    .siren-btn.active {
+        animation: sirenFlash 0.5s infinite alternate;
+        border-color: #fbbf24;
+    }
+    @keyframes sirenFlash {
+        0% { background: #dc2626; box-shadow: 0 0 40px #dc2626; }
+        100% { background: #1d4ed8; box-shadow: 0 0 40px #1d4ed8; }
+    }
+    .siren-active-overlay {
+        display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        z-index: 99999; cursor: pointer;
+    }
+    .siren-active-overlay.show {
+        display: block;
+        animation: screenFlash 0.5s infinite alternate;
+    }
+    @keyframes screenFlash {
+        0% { background: rgba(220, 38, 38, 0.9); }
+        100% { background: rgba(29, 78, 216, 0.9); }
+    }
+    .siren-active-overlay .stop-text {
+        position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+        color: white; font-size: 1.5rem; font-weight: 700; text-align: center;
+    }
+    .feature-grid .card { transition: transform 0.2s; cursor: pointer; }
+    .feature-grid .card:hover { transform: translateY(-3px); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold text-center mb-2"><i class="bi bi-megaphone-fill text-danger"></i> Emergency Siren & Flashlight</h2>
+    <p class="text-muted text-center mb-5">Activate a loud siren and flashing strobe to attract attention from bystanders in an emergency.</p>
+
+    <!-- Main Siren Button -->
+    <div class="siren-page">
+        <div class="text-center">
+            <button class="siren-btn" id="sirenBtn" onclick="toggleSiren()">
+                <i class="bi bi-megaphone-fill" style="font-size: 4rem;"></i>
+                <span class="mt-2">ACTIVATE</span>
+            </button>
+            <p class="text-muted mt-4">Tap to activate loud siren + screen flash</p>
+            <p class="text-muted small">Tap anywhere on screen to stop</p>
+        </div>
+    </div>
+
+    <!-- Quick Options -->
+    <div class="row g-3 mt-4 feature-grid">
+        <div class="col-md-3 col-6">
+            <div class="card card-safety p-3 text-center" onclick="activateSirenOnly()">
+                <i class="bi bi-volume-up-fill text-danger" style="font-size: 2rem;"></i>
+                <small class="fw-bold mt-2 d-block">Siren Only</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card card-safety p-3 text-center" onclick="activateFlashOnly()">
+                <i class="bi bi-lightning-fill text-warning" style="font-size: 2rem;"></i>
+                <small class="fw-bold mt-2 d-block">Flash Only</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card card-safety p-3 text-center" onclick="activateBoth()">
+                <i class="bi bi-exclamation-triangle-fill text-primary" style="font-size: 2rem;"></i>
+                <small class="fw-bold mt-2 d-block">Both</small>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card card-safety p-3 text-center" onclick="sirenWithSOS()">
+                <i class="bi bi-broadcast text-danger" style="font-size: 2rem;"></i>
+                <small class="fw-bold mt-2 d-block">Siren + SOS</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info -->
+    <div class="card card-safety p-4 mt-4">
+        <h5 class="fw-bold"><i class="bi bi-info-circle"></i> How This Helps</h5>
+        <ul class="mt-2 mb-0">
+            <li>Creates a <strong>loud high-pitched siren</strong> sound at maximum volume</li>
+            <li><strong>Screen flashes red/blue</strong> like police lights to attract visual attention</li>
+            <li><strong>Flashlight strobes</strong> rapidly (on supported devices)</li>
+            <li>Forces attacker to flee due to attention from bystanders</li>
+            <li>Works <strong>completely offline</strong> — no internet needed</li>
+            <li>Combine with <strong>SOS</strong> to also alert your trusted contacts</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Siren Overlay (full screen flash when active) -->
+<div class="siren-active-overlay" id="sirenOverlay" onclick="stopSiren()">
+    <div class="stop-text">
+        <i class="bi bi-megaphone-fill" style="font-size: 3rem;"></i>
+        <br>SIREN ACTIVE<br>
+        <small>Tap anywhere to stop</small>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let sirenActive = false;
+let audioCtx = null;
+let oscillator = null;
+let gainNode = null;
+let flashInterval = null;
+let torchStream = null;
+let torchInterval = null;
+let sirenMode = 'both'; // 'siren', 'flash', 'both'
+
+function toggleSiren() {
+    if (sirenActive) {
+        stopSiren();
+    } else {
+        activateBoth();
+    }
+}
+
+function activateSirenOnly() {
+    sirenMode = 'siren';
+    startSiren(true, false);
+}
+
+function activateFlashOnly() {
+    sirenMode = 'flash';
+    startSiren(false, true);
+}
+
+function activateBoth() {
+    sirenMode = 'both';
+    startSiren(true, true);
+}
+
+function sirenWithSOS() {
+    activateBoth();
+    // Also trigger SOS
+    if (window.safepathSOS) {
+        window.safepathSOS.triggerSOS();
+    } else {
+        // Fallback: use fetch API
+        navigator.geolocation.getCurrentPosition(function(pos) {
+            fetch('/api/sos/trigger/', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude, message: 'SOS + Siren activated!'})
+            });
+        });
+    }
+}
+
+function startSiren(sound, flash) {
+    sirenActive = true;
+    document.getElementById('sirenBtn').classList.add('active');
+    document.getElementById('sirenBtn').innerHTML = '<i class="bi bi-stop-fill" style="font-size:4rem;"></i><span class="mt-2">STOP</span>';
+
+    // Vibrate continuously
+    if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 200, 100, 200, 100, 200, 100, 200, 100, 200, 100, 200]);
+    }
+
+    // Start siren sound
+    if (sound) startSirenSound();
+
+    // Start screen flash + flashlight
+    if (flash) {
+        document.getElementById('sirenOverlay').classList.add('show');
+        startFlashlight();
+    }
+}
+
+function stopSiren() {
+    sirenActive = false;
+    document.getElementById('sirenBtn').classList.remove('active');
+    document.getElementById('sirenBtn').innerHTML = '<i class="bi bi-megaphone-fill" style="font-size:4rem;"></i><span class="mt-2">ACTIVATE</span>';
+    document.getElementById('sirenOverlay').classList.remove('show');
+
+    // Stop sound
+    if (oscillator) { try { oscillator.stop(); } catch(e){} oscillator = null; }
+    if (audioCtx) { audioCtx.close(); audioCtx = null; }
+
+    // Stop vibration
+    if (navigator.vibrate) navigator.vibrate(0);
+
+    // Stop flashlight
+    if (torchInterval) { clearInterval(torchInterval); torchInterval = null; }
+    if (torchStream) { torchStream.getTracks().forEach(t => t.stop()); torchStream = null; }
+}
+
+function startSirenSound() {
+    try {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        oscillator = audioCtx.createOscillator();
+        gainNode = audioCtx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        // High-pitched alternating siren
+        oscillator.type = 'sawtooth';
+        oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+
+        // Siren sweep: oscillate between 600Hz and 1400Hz
+        const now = audioCtx.currentTime;
+        for (let i = 0; i < 200; i++) {
+            oscillator.frequency.setValueAtTime(600, now + i * 0.6);
+            oscillator.frequency.linearRampToValueAtTime(1400, now + i * 0.6 + 0.3);
+            oscillator.frequency.linearRampToValueAtTime(600, now + i * 0.6 + 0.6);
+        }
+
+        oscillator.start();
+    } catch (e) {
+        console.warn('Audio siren failed:', e);
+    }
+}
+
+function startFlashlight() {
+    // Try to use camera torch/flashlight
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', advanced: [{torch: true}] }
+        }).then(stream => {
+            torchStream = stream;
+            const track = stream.getVideoTracks()[0];
+            let torchOn = true;
+
+            // Strobe effect
+            torchInterval = setInterval(() => {
+                torchOn = !torchOn;
+                track.applyConstraints({ advanced: [{torch: torchOn}] }).catch(() => {});
+            }, 200);
+        }).catch(() => {
+            // Flashlight not available - screen flash is still active
+            console.warn('Flashlight not available on this device');
+        });
+    }
+}
+
+function getCookie(name) {
+    let v = null;
+    if (document.cookie) {
+        document.cookie.split(';').forEach(c => { c = c.trim(); if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1)); });
+    }
+    return v;
+}
+
+// Stop siren on page leave
+window.addEventListener('beforeunload', stopSiren);
+</script>
+{% endblock %}

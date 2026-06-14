@@ -555,3 +555,57 @@ def safe_network(request):
 def safe_time_analysis(request):
     """Safe time analysis for routes."""
     return render(request, 'core/safe_time_analysis.html')
+
+
+# ============================================================
+# SIREN & FLASHLIGHT
+# ============================================================
+
+def siren(request):
+    """Emergency siren and flashlight strobe page."""
+    return render(request, 'core/siren.html')
+
+
+# ============================================================
+# LEGAL RIGHTS
+# ============================================================
+
+def legal_rights(request):
+    """Pakistani legal rights information for women."""
+    return render(request, 'core/legal_rights.html')
+
+
+# ============================================================
+# SELF DEFENSE GUIDES
+# ============================================================
+
+def self_defense(request):
+    """Self-defense quick guides."""
+    return render(request, 'core/self_defense.html')
+
+
+# ============================================================
+# PANIC DISGUISE MODE
+# ============================================================
+
+def disguise_mode(request):
+    """Calculator disguise with hidden safety features."""
+    return render(request, 'core/disguise_mode.html')
+
+
+# ============================================================
+# SAFE PICKUP POINTS
+# ============================================================
+
+def safe_pickup(request):
+    """Find safe, well-lit pickup points for rides."""
+    return render(request, 'core/safe_pickup.html')
+
+
+# ============================================================
+# CROWD ALERTS
+# ============================================================
+
+def crowd_alerts(request):
+    """Real-time crowd-sourced safety alerts."""
+    return render(request, 'core/crowd_alert.html')
