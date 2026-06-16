@@ -18,7 +18,7 @@
     .live-indicator .dot { width: 10px; height: 10px; border-radius: 50%; background: #10b981; animation: livePulse 1.5s infinite; }
     @keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
     .shared-contacts-list { display: flex; flex-wrap: wrap; gap: 6px; }
-    .shared-contact-chip { background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 20px; padding: 2px 10px; font-size: 0.75rem; color: #065f46; }
+    .shared-contact-chip { background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; color: #065f46; }
 </style>
 {% endblock %}
 
@@ -29,6 +29,9 @@
         <div class="live-indicator">
             <span class="dot"></span>
             <strong class="text-success">LIVE TRACKING</strong>
+            <span class="badge bg-light text-dark ms-2 small" id="signalStatus">
+                <i class="bi bi-wifi"></i> Online
+            </span>
         </div>
         <span class="badge {% if journey.status == 'active' %}bg-success{% elif journey.status == 'sos' %}bg-danger{% else %}bg-secondary{% endif %} fs-6 px-3 py-2">
             {{ journey.get_status_display }}
@@ -260,6 +263,11 @@ map.fitBounds([[{{ journey.source_lat }}, {{ journey.source_lng }}], [{{ journey
 {% if journey.status == 'active' %}
 let locationHistory = [];
 
+// Activate Emergency Scenarios monitoring for this journey
+if (window.emergencyHandler) {
+    window.emergencyHandler.startJourneyMonitoring('{{ journey.tracking_id }}');
+}
+
 if (navigator.geolocation) {
     navigator.geolocation.watchPosition(function(pos) {
         const lat = pos.coords.latitude;
@@ -407,5 +415,18 @@ function getCookie(name) {
     if (document.cookie) { document.cookie.split(';').forEach(c => { c = c.trim(); if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1)); }); }
     return v;
 }
+
+// Signal status indicator
+setInterval(() => {
+    const el = document.getElementById('signalStatus');
+    if (!el) return;
+    if (navigator.onLine) {
+        el.innerHTML = '<i class="bi bi-wifi"></i> Online';
+        el.className = 'badge bg-light text-success ms-2 small';
+    } else {
+        el.innerHTML = '<i class="bi bi-wifi-off"></i> OFFLINE - SMS Mode';
+        el.className = 'badge bg-danger text-white ms-2 small';
+    }
+}, 5000);
 </script>
 {% endblock %}

@@ -131,6 +131,22 @@
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
         
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            #map { height: 350px; }
+            .hero-section { padding: 40px 0; }
+            .hero-section h1 { font-size: 2rem; }
+            .stat-card .stat-number { font-size: 1.8rem; }
+            .navbar-brand { font-size: 1.1rem; }
+            .card-safety { border-radius: 12px; }
+            .btn-safepath { padding: 8px 18px; font-size: 0.9rem; }
+            .score-badge { width: 50px; height: 50px; font-size: 1rem; }
+        }
+        @media (max-width: 576px) {
+            #map { height: 280px; }
+            .container-fluid { padding-left: 10px; padding-right: 10px; }
+        }
+        
         .footer {
             background: var(--sp-dark);
             color: rgba(255, 255, 255, 0.7);
@@ -281,6 +297,8 @@
     
     <!-- Zero-Data SOS Module (works offline) -->
     <script src="/static/js/zero_data_sos.js"></script>
+    <!-- Emergency Scenarios: Signal Lost + Kidnapping Protocol -->
+    <script src="/static/js/emergency_scenarios.js"></script>
     
     <!-- Shake-to-SOS Global Script -->
     {% if user.is_authenticated %}
