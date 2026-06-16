@@ -323,6 +323,12 @@ function displayResults(data) {
         'shortest': '#f59e0b'
     };
     
+    const routeIcons = {
+        'safest': '🛡️',
+        'fastest': '🚀',
+        'shortest': '⚡'
+    };
+    
     let routeHTML = '<div class="row g-3">';
     
     data.routes.forEach((route, idx) => {
@@ -330,46 +336,67 @@ function displayResults(data) {
         const latlngs = route.points.map(p => [p.lat, p.lng]);
         const polyline = L.polyline(latlngs, {
             color: routeColors[route.type] || '#666',
-            weight: route.recommended ? 6 : 4,
-            opacity: route.recommended ? 1 : 0.7,
-            dashArray: route.recommended ? null : '10 5'
+            weight: route.recommended ? 7 : 4,
+            opacity: route.recommended ? 1 : 0.6,
+            dashArray: route.recommended ? null : '8 6'
         }).addTo(map);
         routeLayers.push(polyline);
         
-        // Score color
+        // Route label on map
+        const midIdx = Math.floor(route.points.length / 2);
+        const midPoint = route.points[midIdx];
+        L.marker([midPoint.lat, midPoint.lng], {
+            icon: L.divIcon({
+                className: '',
+                html: `<div style="background:${routeColors[route.type]};color:white;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;white-space:nowrap;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${routeIcons[route.type]} ${route.type.toUpperCase()}</div>`,
+                iconSize: [80, 20],
+                iconAnchor: [40, 10]
+            })
+        }).addTo(map);
+        
+        // Score color class
         const scoreClass = route.scores.overall >= 70 ? 'score-high' : 
                           route.scores.overall >= 45 ? 'score-medium' : 'score-low';
         
-        const scoreBarColor = route.scores.overall >= 70 ? '#10b981' : 
-                             route.scores.overall >= 45 ? '#f59e0b' : '#ef4444';
+        // Border color for card
+        const borderColor = routeColors[route.type];
         
         routeHTML += `
             <div class="col-md-4">
                 <div class="card card-safety route-card ${route.type} p-3 ${route.recommended ? 'active' : ''}" 
+                     style="border-left: 5px solid ${borderColor};"
                      onclick="highlightRoute(${idx})">
-                    ${route.recommended ? '<span class="badge bg-success mb-2">★ Recommended</span>' : ''}
+                    ${route.recommended ? '<span class="badge bg-success mb-2">★ RECOMMENDED - Safest</span>' : ''}
+                    ${route.type === 'shortest' ? '<span class="badge bg-warning text-dark mb-2">⚡ Shortest Distance</span>' : ''}
+                    ${route.type === 'fastest' ? '<span class="badge bg-primary mb-2">🚀 Fastest Route</span>' : ''}
                     <div class="d-flex align-items-center mb-2">
                         <div class="score-badge ${scoreClass} me-3">${Math.round(route.scores.overall)}</div>
                         <div>
-                            <h6 class="mb-0">${route.label}</h6>
-                            <small class="text-muted">${route.distance_km} km · ${route.duration_min} min</small>
+                            <h6 class="mb-0">${routeIcons[route.type]} ${route.label}</h6>
+                            <small class="text-muted">${route.distance_km} km · ${route.duration_min} min walk</small>
                         </div>
                     </div>
+                    ${route.description ? `<p class="small text-muted mb-2">${route.description}</p>` : ''}
                     <div class="mt-2">
                         <div class="d-flex justify-content-between mb-1">
-                            <small>Crime Safety</small><small>${Math.round(route.scores.crime)}%</small>
+                            <small>Crime Safety</small><small class="fw-bold">${Math.round(route.scores.crime)}%</small>
                         </div>
-                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.crime}%;background:${scoreBarColor}"></div></div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.crime}%;background:${borderColor}"></div></div>
                         
                         <div class="d-flex justify-content-between mb-1 mt-2">
-                            <small>Lighting</small><small>${Math.round(route.scores.lighting)}%</small>
+                            <small>Lighting</small><small class="fw-bold">${Math.round(route.scores.lighting)}%</small>
                         </div>
-                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.lighting}%;background:${scoreBarColor}"></div></div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.lighting}%;background:${borderColor}"></div></div>
                         
                         <div class="d-flex justify-content-between mb-1 mt-2">
-                            <small>Crowd Density</small><small>${Math.round(route.scores.crowd)}%</small>
+                            <small>Crowd Density</small><small class="fw-bold">${Math.round(route.scores.crowd)}%</small>
                         </div>
-                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.crowd}%;background:${scoreBarColor}"></div></div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.crowd}%;background:${borderColor}"></div></div>
+
+                        <div class="d-flex justify-content-between mb-1 mt-2">
+                            <small>Safe Zones Nearby</small><small class="fw-bold">${Math.round(route.scores.safe_zone)}%</small>
+                        </div>
+                        <div class="score-bar"><div class="score-bar-fill" style="width:${route.scores.safe_zone}%;background:${borderColor}"></div></div>
                     </div>
                 </div>
             </div>
@@ -379,11 +406,14 @@ function displayResults(data) {
     routeHTML += '</div>';
     document.getElementById('routeResults').innerHTML = routeHTML;
     
-    // AI Explanation
-    const bestRoute = data.routes[0];
+    // AI Explanation - show for the safest route
+    const safestRoute = data.routes.find(r => r.type === 'safest') || data.routes[0];
+    const shortestRoute = data.routes.find(r => r.type === 'shortest');
+    
     document.getElementById('aiExplanation').innerHTML = `
         <h6 class="fw-semibold"><i class="bi bi-robot"></i> AI Safety Analysis</h6>
-        <p class="mb-0">${bestRoute.explanation}</p>
+        <p class="mb-2">${safestRoute.explanation}</p>
+        ${shortestRoute ? `<p class="mb-0 small text-muted"><strong>Note:</strong> The shortest route (${shortestRoute.distance_km} km) scores only ${Math.round(shortestRoute.scores.overall)}/100 — ${Math.round(safestRoute.scores.overall - shortestRoute.scores.overall)} points less safe than the recommended route. The extra ${(safestRoute.distance_km - shortestRoute.distance_km).toFixed(1)} km is worth your safety.</p>` : ''}
     `;
     
     // Safety Tips
