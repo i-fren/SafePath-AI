@@ -1,81 +1,167 @@
 {% extends 'base.html' %}
-{% block title %}Journey Tracking{% endblock %}
+{% block title %}Live Journey Tracking{% endblock %}
 
 {% block extra_css %}
 <style>
     .sos-float { position: fixed; bottom: 30px; right: 30px; z-index: 9999; }
     .sos-float .btn { width: 70px; height: 70px; border-radius: 50%; font-size: 1.2rem; box-shadow: 0 4px 20px rgba(220,38,38,0.5); animation: pulse 2s infinite; }
     @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.7); } 70% { box-shadow: 0 0 0 15px rgba(220,38,38,0); } 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); } }
-    .checkin-banner { background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px; padding: 16px; border: 1px solid #f59e0b; display: none; }
+    .checkin-banner { background: linear-gradient(135deg, #fef3c7, #fde68a); border-radius: 12px; padding: 16px; border: 2px solid #f59e0b; display: none; animation: slideDown 0.3s; }
     .checkin-banner.show { display: block; }
+    @keyframes slideDown { from { transform: translateY(-10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .deviation-alert { background: linear-gradient(135deg, #fef2f2, #fee2e2); border: 2px solid #dc2626; border-radius: 12px; padding: 16px; display: none; animation: shake 0.5s; }
+    .deviation-alert.show { display: block; }
+    @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+    .danger-report { background: linear-gradient(135deg, #fff7ed, #ffedd5); border: 1px solid #f97316; border-radius: 12px; padding: 12px; }
+    .safe-zone-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 15px; font-size: 0.7rem; font-weight: 600; }
+    .live-indicator { display: inline-flex; align-items: center; gap: 6px; }
+    .live-indicator .dot { width: 10px; height: 10px; border-radius: 50%; background: #10b981; animation: livePulse 1.5s infinite; }
+    @keyframes livePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .shared-contacts-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .shared-contact-chip { background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 20px; padding: 2px 10px; font-size: 0.75rem; color: #065f46; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <div class="row g-4">
+<div class="container-fluid py-3">
+    <!-- Status Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+        <div class="live-indicator">
+            <span class="dot"></span>
+            <strong class="text-success">LIVE TRACKING</strong>
+        </div>
+        <span class="badge {% if journey.status == 'active' %}bg-success{% elif journey.status == 'sos' %}bg-danger{% else %}bg-secondary{% endif %} fs-6 px-3 py-2">
+            {{ journey.get_status_display }}
+        </span>
+    </div>
+
+    <div class="row g-3">
         <!-- Left Panel -->
         <div class="col-lg-4">
-            <div class="card card-safety p-4 mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="fw-bold mb-0"><i class="bi bi-broadcast text-success"></i> Journey</h4>
-                    <span class="badge {% if journey.status == 'active' %}bg-success{% elif journey.status == 'sos' %}bg-danger{% else %}bg-secondary{% endif %} fs-6">
-                        {{ journey.get_status_display }}
-                    </span>
+            <!-- Journey Info -->
+            <div class="card card-safety p-3 mb-3">
+                <h5 class="fw-bold mb-2"><i class="bi bi-map text-primary"></i> Journey Details</h5>
+                <div class="d-flex align-items-start mb-2">
+                    <div class="me-2"><span class="badge bg-success rounded-circle p-1">&nbsp;</span></div>
+                    <div><small class="text-muted">From</small><br><strong>{{ journey.source_name|default:"Source" }}</strong></div>
                 </div>
-                <p class="mb-1"><strong>From:</strong> {{ journey.source_name|default:"Source" }}</p>
-                <p class="mb-1"><strong>To:</strong> {{ journey.dest_name|default:"Destination" }}</p>
-                <p class="mb-1"><strong>ETA:</strong> {{ journey.eta_minutes }} minutes</p>
-                <p class="mb-1"><strong>Check-in:</strong> {% if journey.checkin_interval > 0 %}Every {{ journey.checkin_interval }} min{% else %}Disabled{% endif %}</p>
-                <p class="mb-3"><strong>Started:</strong> {{ journey.started_at|date:"M d, H:i" }}</p>
-
-                <!-- Share Tracking Link -->
-                <div class="bg-light p-3 rounded-3 mb-3">
-                    <label class="form-label small fw-semibold">Share Tracking Link:</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control form-control-sm" id="trackingLink" 
-                               value="{{ request.scheme }}://{{ request.get_host }}{% url 'track_journey' journey.tracking_id %}" readonly>
-                        <button class="btn btn-outline-primary btn-sm" onclick="copyLink()">
-                            <i class="bi bi-clipboard"></i>
-                        </button>
+                <div class="d-flex align-items-start mb-2">
+                    <div class="me-2"><span class="badge bg-danger rounded-circle p-1">&nbsp;</span></div>
+                    <div><small class="text-muted">To</small><br><strong>{{ journey.dest_name|default:"Destination" }}</strong></div>
+                </div>
+                <div class="row g-2 mt-2">
+                    <div class="col-4 text-center">
+                        <div class="bg-light rounded-3 p-2">
+                            <i class="bi bi-clock text-primary"></i><br>
+                            <strong>{{ journey.eta_minutes }}m</strong><br>
+                            <small class="text-muted">ETA</small>
+                        </div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="bg-light rounded-3 p-2">
+                            <i class="bi bi-shield-check text-success"></i><br>
+                            <strong>{{ journey.safety_score|floatformat:0 }}</strong><br>
+                            <small class="text-muted">Safety</small>
+                        </div>
+                    </div>
+                    <div class="col-4 text-center">
+                        <div class="bg-light rounded-3 p-2">
+                            <i class="bi bi-alarm text-warning"></i><br>
+                            <strong>{% if journey.checkin_interval > 0 %}{{ journey.checkin_interval }}m{% else %}Off{% endif %}</strong><br>
+                            <small class="text-muted">Check-in</small>
+                        </div>
                     </div>
                 </div>
+            </div>
 
-                {% if journey.status == 'active' %}
-                <!-- Actions -->
-                <div class="d-grid gap-2">
-                    <button class="btn btn-success" onclick="checkIn()">
-                        <i class="bi bi-check-circle"></i> I'm Safe (Check-In)
-                    </button>
-                    <a href="{% url 'complete_journey' journey.tracking_id %}" class="btn btn-primary" 
-                       onclick="return confirm('Confirm you have arrived safely?')">
-                        <i class="bi bi-flag-fill"></i> Confirm Arrival
-                    </a>
-                    <button class="btn btn-danger" onclick="triggerSOS()">
-                        <i class="bi bi-exclamation-triangle-fill"></i> SOS Emergency
-                    </button>
+            <!-- Live Sharing Status -->
+            <div class="card card-safety p-3 mb-3">
+                <h6 class="fw-bold"><i class="bi bi-broadcast text-success"></i> Live Location Shared With:</h6>
+                <div class="shared-contacts-list mt-2">
+                    {% for contact in journey.shared_contacts.all %}
+                    <span class="shared-contact-chip"><i class="bi bi-check-circle-fill"></i> {{ contact.name }}</span>
+                    {% empty %}
+                    <span class="text-muted small">No contacts selected</span>
+                    {% endfor %}
                 </div>
-                {% endif %}
+                <!-- Share Tracking Link -->
+                <div class="mt-3">
+                    <label class="form-label small fw-semibold mb-1">Public Tracking Link:</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" id="trackingLink" 
+                               value="{{ request.scheme }}://{{ request.get_host }}{% url 'track_journey' journey.tracking_id %}" readonly>
+                        <button class="btn btn-outline-primary" onclick="copyLink()">
+                            <i class="bi bi-clipboard"></i> Copy
+                        </button>
+                    </div>
+                    <small class="text-muted">Anyone with this link can see your live location</small>
+                </div>
+            </div>
+
+            <!-- Route Deviation Alert -->
+            <div class="deviation-alert mb-3" id="deviationAlert">
+                <h6 class="fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill"></i> ROUTE DEVIATION!</h6>
+                <p class="small mb-2">You are <strong id="deviationDistance">0</strong>m away from your planned route.</p>
+                <p class="small mb-2 fw-bold">Are you safe?</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="confirmDeviationSafe()"><i class="bi bi-check"></i> Yes, I'm safe</button>
+                    <button class="btn btn-danger btn-sm" onclick="triggerSOS()"><i class="bi bi-exclamation-triangle"></i> Need Help</button>
+                </div>
             </div>
 
             <!-- Check-in Banner -->
             <div class="checkin-banner mb-3" id="checkinBanner">
                 <h6 class="fw-bold"><i class="bi bi-alarm text-warning"></i> Check-In Required!</h6>
-                <p class="small mb-2">Are you safe? Please confirm.</p>
-                <button class="btn btn-success btn-sm" onclick="checkIn()">✓ I'm Safe</button>
-                <button class="btn btn-danger btn-sm" onclick="triggerSOS()">✗ Need Help</button>
+                <p class="small mb-2">Your periodic safety check-in is due. Are you safe?</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="checkIn()"><i class="bi bi-check-circle"></i> I'm Safe</button>
+                    <button class="btn btn-danger btn-sm" onclick="triggerSOS()"><i class="bi bi-exclamation-triangle"></i> Need Help</button>
+                </div>
+                <small class="text-muted mt-1 d-block">⚠️ If you don't respond, your contacts will be alerted</small>
             </div>
 
-            <!-- Nearby Safe Zones -->
+            <!-- Community Danger Alerts -->
+            <div class="danger-report mb-3" id="dangerAlerts">
+                <h6 class="fw-bold"><i class="bi bi-exclamation-circle text-orange"></i> Community Alerts Nearby</h6>
+                <div id="dangerAlertsList" class="small mt-2"></div>
+            </div>
+
+            {% if journey.status == 'active' %}
+            <!-- Actions -->
+            <div class="card card-safety p-3 mb-3">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" onclick="checkIn()">
+                        <i class="bi bi-check-circle-fill"></i> I'm Safe (Check-In)
+                    </button>
+                    <a href="{% url 'complete_journey' journey.tracking_id %}" class="btn btn-primary" 
+                       onclick="return confirm('Confirm safe arrival?')">
+                        <i class="bi bi-flag-fill"></i> Confirm Safe Arrival
+                    </a>
+                    <button class="btn btn-danger" onclick="triggerSOS()">
+                        <i class="bi bi-exclamation-triangle-fill"></i> SOS Emergency
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Nearby Safe Zones Along Route -->
             <div class="card card-safety p-3">
-                <h6 class="fw-bold"><i class="bi bi-shield-check text-primary"></i> Nearby Safe Places</h6>
+                <h6 class="fw-bold"><i class="bi bi-shield-check text-primary"></i> Safe Zones Along Route</h6>
                 <div id="nearbyList" class="small"></div>
             </div>
         </div>
 
         <!-- Map -->
         <div class="col-lg-8">
-            <div id="map" style="height: 600px; border-radius: 16px;"></div>
+            <div id="map" style="height: 650px; border-radius: 16px;"></div>
+            <!-- Map Legend -->
+            <div class="d-flex flex-wrap gap-2 mt-2 px-2">
+                <span class="safe-zone-badge" style="background:#dbeafe;color:#1d4ed8;"><i class="bi bi-circle-fill"></i> Police Station</span>
+                <span class="safe-zone-badge" style="background:#dcfce7;color:#166534;"><i class="bi bi-circle-fill"></i> Hospital</span>
+                <span class="safe-zone-badge" style="background:#fef3c7;color:#92400e;"><i class="bi bi-circle-fill"></i> Transit/Metro</span>
+                <span class="safe-zone-badge" style="background:#fee2e2;color:#991b1b;"><i class="bi bi-circle-fill"></i> Danger Report</span>
+                <span class="safe-zone-badge" style="background:#f3e8ff;color:#6b21a8;"><i class="bi bi-circle-fill"></i> Your Location</span>
+            </div>
         </div>
     </div>
 </div>
@@ -95,35 +181,98 @@
 const map = L.map('map').setView([{{ journey.current_lat|default:journey.source_lat }}, {{ journey.current_lng|default:journey.source_lng }}], 14);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 
+// Route line (source to destination)
+const routeLine = L.polyline([
+    [{{ journey.source_lat }}, {{ journey.source_lng }}],
+    [{{ journey.current_lat|default:journey.source_lat }}, {{ journey.current_lng|default:journey.source_lng }}],
+    [{{ journey.dest_lat }}, {{ journey.dest_lng }}]
+], {color: '#10b981', weight: 4, opacity: 0.8, dashArray: '10 5'}).addTo(map);
+
 // Source & Destination markers
-L.marker([{{ journey.source_lat }}, {{ journey.source_lng }}], {}).addTo(map).bindPopup('<b>Start</b>');
-L.marker([{{ journey.dest_lat }}, {{ journey.dest_lng }}], {}).addTo(map).bindPopup('<b>Destination</b>');
+const srcIcon = L.divIcon({className:'',html:'<div style="background:#10b981;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',iconSize:[20,20],iconAnchor:[10,10]});
+const dstIcon = L.divIcon({className:'',html:'<div style="background:#ef4444;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',iconSize:[20,20],iconAnchor:[10,10]});
 
-// Current location marker
+L.marker([{{ journey.source_lat }}, {{ journey.source_lng }}], {icon: srcIcon}).addTo(map).bindPopup('<b>🟢 Start:</b> {{ journey.source_name|default:"Source" }}');
+L.marker([{{ journey.dest_lat }}, {{ journey.dest_lng }}], {icon: dstIcon}).addTo(map).bindPopup('<b>🔴 Destination:</b> {{ journey.dest_name|default:"Destination" }}');
+
+// Current location marker (pulsing)
 let currentMarker = L.circleMarker([{{ journey.current_lat|default:journey.source_lat }}, {{ journey.current_lng|default:journey.source_lng }}], {
-    radius: 10, fillColor: '#10b981', color: '#fff', weight: 3, fillOpacity: 1
-}).addTo(map).bindPopup('Current Location');
+    radius: 12, fillColor: '#7c3aed', color: '#fff', weight: 4, fillOpacity: 1
+}).addTo(map).bindPopup('📍 You are here (LIVE)');
 
-// Safe zones
+// Safe zones with color coding by type
+const zoneColors = {police: '#1d4ed8', hospital: '#16a34a', transit: '#d97706', fire_station: '#ea580c', pharmacy: '#059669', shopping: '#7c3aed', public_space: '#0891b2'};
+const zoneIcons = {police: '🚔', hospital: '🏥', transit: '🚉', fire_station: '🚒', pharmacy: '💊', shopping: '🛒', public_space: '🏛️'};
+
 {% for zone in safe_zones %}
-L.circleMarker([{{ zone.latitude }}, {{ zone.longitude }}], {
-    radius: 6, fillColor: '#3b82f6', color: '#fff', weight: 2, fillOpacity: 0.7
-}).addTo(map).bindPopup('<b>{{ zone.name }}</b><br>{{ zone.get_zone_type_display }}');
+(function() {
+    const color = zoneColors['{{ zone.zone_type }}'] || '#6b7280';
+    const icon = zoneIcons['{{ zone.zone_type }}'] || '📍';
+    L.circleMarker([{{ zone.latitude }}, {{ zone.longitude }}], {
+        radius: 8, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.8
+    }).addTo(map).bindPopup('<b>' + icon + ' {{ zone.name }}</b><br>{{ zone.get_zone_type_display }}<br><small>{{ zone.operating_hours }}</small><br>{% if zone.phone %}<a href="tel:{{ zone.phone }}">📞 {{ zone.phone }}</a>{% endif %}');
+    // Safety radius circle
+    L.circle([{{ zone.latitude }}, {{ zone.longitude }}], {radius: {{ zone.radius }}, color: color, fillOpacity: 0.05, weight: 1}).addTo(map);
+})();
 {% endfor %}
 
-// Fit map bounds
-map.fitBounds([[{{ journey.source_lat }}, {{ journey.source_lng }}], [{{ journey.dest_lat }}, {{ journey.dest_lng }}]], {padding: [50, 50]});
+// Load community danger reports nearby and show on map
+fetch('/api/crime-heatmap/')
+    .then(r => r.json())
+    .then(crimes => {
+        let alertsHTML = '';
+        let nearRoute = 0;
+        crimes.forEach(c => {
+            // Check if crime is near the route
+            const dist = getDistToRoute(c.latitude, c.longitude);
+            if (dist < 800) { // Within 800m of route
+                nearRoute++;
+                L.circleMarker([c.latitude, c.longitude], {
+                    radius: c.severity * 3, fillColor: '#dc2626', color: '#fca5a5', weight: 2, fillOpacity: 0.6
+                }).addTo(map).bindPopup('<b>⚠️ ' + c.crime_type + '</b><br>Severity: ' + c.severity + '/4<br><small class="text-danger">Near your route</small>');
+            }
+        });
+        if (nearRoute > 0) {
+            alertsHTML = `<div class="text-danger"><strong>${nearRoute} incident(s)</strong> reported near your route. Stay alert and keep check-ins active.</div>`;
+        } else {
+            alertsHTML = '<div class="text-success"><i class="bi bi-check-circle"></i> No recent incidents near your route.</div>';
+        }
+        document.getElementById('dangerAlertsList').innerHTML = alertsHTML;
+    });
 
-// Live location tracking
+function getDistToRoute(lat, lng) {
+    // Simple distance check to route line
+    const srcLat = {{ journey.source_lat }}, srcLng = {{ journey.source_lng }};
+    const dstLat = {{ journey.dest_lat }}, dstLng = {{ journey.dest_lng }};
+    // Distance to midpoint as approximation
+    const midLat = (srcLat + dstLat) / 2, midLng = (srcLng + dstLng) / 2;
+    const R = 6371000;
+    const dLat = (lat - midLat) * Math.PI / 180;
+    const dLng = (lng - midLng) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(midLat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// Fit map bounds
+map.fitBounds([[{{ journey.source_lat }}, {{ journey.source_lng }}], [{{ journey.dest_lat }}, {{ journey.dest_lng }}]], {padding: [60, 60]});
+
+// ====== LIVE TRACKING ======
 {% if journey.status == 'active' %}
-let watchId = null;
+let locationHistory = [];
+
 if (navigator.geolocation) {
-    watchId = navigator.geolocation.watchPosition(function(pos) {
+    navigator.geolocation.watchPosition(function(pos) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         currentMarker.setLatLng([lat, lng]);
+        locationHistory.push([lat, lng]);
         
-        // Send location update to server
+        // Draw path taken
+        if (locationHistory.length > 1) {
+            L.polyline(locationHistory, {color: '#7c3aed', weight: 3, opacity: 0.7}).addTo(map);
+        }
+        
+        // Send to server
         fetch('/api/journey/{{ journey.tracking_id }}/location/', {
             method: 'POST',
             headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
@@ -136,18 +285,31 @@ if (navigator.geolocation) {
     }, null, {enableHighAccuracy: true, maximumAge: 10000, timeout: 5000});
 }
 
-// Check-in timer
+// Check-in timer notification
 {% if journey.checkin_interval > 0 %}
-const checkinInterval = {{ journey.checkin_interval }} * 60 * 1000;
-setTimeout(() => {
-    document.getElementById('checkinBanner').classList.add('show');
-}, checkinInterval);
-setInterval(() => {
-    document.getElementById('checkinBanner').classList.add('show');
-}, checkinInterval);
+const checkinMs = {{ journey.checkin_interval }} * 60 * 1000;
+// Show first check-in after interval
+setTimeout(() => { document.getElementById('checkinBanner').classList.add('show'); }, checkinMs);
+// Then repeat
+setInterval(() => { document.getElementById('checkinBanner').classList.add('show'); }, checkinMs);
+
+// Also show browser notification if supported
+if ('Notification' in window) {
+    Notification.requestPermission();
+    setTimeout(() => {
+        if (Notification.permission === 'granted') {
+            new Notification('SafePath AI - Check-In Required', {
+                body: 'Are you safe? Please open the app and confirm.',
+                icon: '/static/icons/icon-192.png',
+                tag: 'checkin'
+            });
+        }
+    }, checkinMs);
+}
 {% endif %}
 {% endif %}
 
+// ====== FUNCTIONS ======
 function checkIn() {
     navigator.geolocation.getCurrentPosition(function(pos) {
         fetch('/api/journey/{{ journey.tracking_id }}/checkin/', {
@@ -156,7 +318,8 @@ function checkIn() {
             body: JSON.stringify({latitude: pos.coords.latitude, longitude: pos.coords.longitude, is_safe: true})
         }).then(r => r.json()).then(data => {
             document.getElementById('checkinBanner').classList.remove('show');
-            alert('✓ Check-in successful! Stay safe.');
+            if (navigator.vibrate) navigator.vibrate(100);
+            alert('✅ Check-in successful! Next check-in: ' + (data.next_checkin_due ? new Date(data.next_checkin_due).toLocaleTimeString() : 'N/A'));
         });
     }, function() {
         fetch('/api/journey/{{ journey.tracking_id }}/checkin/', {
@@ -165,8 +328,32 @@ function checkIn() {
             body: JSON.stringify({is_safe: true})
         }).then(() => {
             document.getElementById('checkinBanner').classList.remove('show');
-            alert('✓ Check-in successful!');
+            alert('✅ Check-in successful!');
         });
+    });
+}
+
+function showDeviationWarning(distance) {
+    document.getElementById('deviationDistance').textContent = Math.round(distance);
+    document.getElementById('deviationAlert').classList.add('show');
+    // Vibrate warning
+    if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+    // Browser notification
+    if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('⚠️ Route Deviation Detected!', {
+            body: `You are ${Math.round(distance)}m away from your route. Are you safe?`,
+            icon: '/static/icons/icon-192.png',
+            tag: 'deviation'
+        });
+    }
+}
+
+function confirmDeviationSafe() {
+    document.getElementById('deviationAlert').classList.remove('show');
+    fetch('/api/journey/{{ journey.tracking_id }}/deviation-safe/', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+        body: JSON.stringify({response: 'I am safe, changed route intentionally'})
     });
 }
 
@@ -193,43 +380,31 @@ function triggerSOS() {
     });
 }
 
-function showDeviationWarning(distance) {
-    if (confirm('⚠️ ROUTE DEVIATION DETECTED\n\nYou are ' + Math.round(distance) + 'm away from your planned route.\n\nAre you safe?')) {
-        fetch('/api/journey/{{ journey.tracking_id }}/deviation-safe/', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
-            body: JSON.stringify({response: 'I am safe, changed route intentionally'})
-        });
-    } else {
-        triggerSOS();
-    }
-}
-
 function copyLink() {
     const link = document.getElementById('trackingLink');
     link.select();
     document.execCommand('copy');
-    alert('Tracking link copied! Share it with your trusted contacts.');
+    alert('📋 Tracking link copied! Share it via WhatsApp or SMS.');
 }
 
-// Load nearby places
-fetch('/api/nearby-places/?lat={{ journey.current_lat|default:journey.source_lat }}&lng={{ journey.current_lng|default:journey.source_lng }}&limit=5')
+// Load nearby safe places
+fetch('/api/nearby-places/?lat={{ journey.current_lat|default:journey.source_lat }}&lng={{ journey.current_lng|default:journey.source_lng }}&limit=6')
     .then(r => r.json()).then(data => {
         let html = '';
+        const icons = {police: '🚔', hospital: '🏥', transit: '🚉', pharmacy: '💊', fire_station: '🚒', shopping: '🛒'};
         data.places.forEach(p => {
-            html += `<div class="border-bottom py-2"><strong>${p.name}</strong><br><small class="text-muted">${p.type_display} • ${p.distance_km} km away</small></div>`;
+            const icon = icons[p.type] || '📍';
+            html += `<div class="border-bottom py-2 d-flex justify-content-between align-items-center">
+                <div><strong>${icon} ${p.name}</strong><br><small class="text-muted">${p.type_display} • ${p.distance_km} km</small></div>
+                ${p.phone ? '<a href="tel:'+p.phone+'" class="btn btn-sm btn-outline-success"><i class="bi bi-telephone"></i></a>' : ''}
+            </div>`;
         });
-        document.getElementById('nearbyList').innerHTML = html || '<p class="text-muted">No nearby places found</p>';
+        document.getElementById('nearbyList').innerHTML = html || '<p class="text-muted">No nearby safe zones</p>';
     });
 
 function getCookie(name) {
     let v = null;
-    if (document.cookie) {
-        document.cookie.split(';').forEach(c => {
-            c = c.trim();
-            if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
-        });
-    }
+    if (document.cookie) { document.cookie.split(';').forEach(c => { c = c.trim(); if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1)); }); }
     return v;
 }
 </script>

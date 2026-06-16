@@ -87,17 +87,39 @@
                 <div class="card-body">
                     {% for ride in active_rides %}
                     <div class="border-bottom pb-3 mb-3">
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-between align-items-center">
                             <strong>{{ ride.get_transport_type_display }}</strong>
-                            <span class="badge bg-success">Active</span>
+                            <span class="badge bg-success px-3 py-2">● LIVE</span>
                         </div>
-                        <h5 class="fw-bold text-primary mt-1" style="letter-spacing:2px;">{{ ride.plate_number }}</h5>
-                        {% if ride.driver_name %}<small>Driver: {{ ride.driver_name }}</small><br>{% endif %}
-                        {% if ride.vehicle_color %}<small>Color: {{ ride.vehicle_color }}</small><br>{% endif %}
-                        <small class="text-muted">Started: {{ ride.started_at|date:"H:i" }} | ETA: {{ ride.expected_duration_minutes }} min</small>
+                        <h4 class="fw-bold text-primary mt-2 mb-1" style="letter-spacing:3px; font-family: monospace;">{{ ride.plate_number }}</h4>
+                        
+                        <!-- Verification Status -->
+                        <div class="bg-light rounded-3 p-2 mt-2">
+                            <small class="fw-bold text-success"><i class="bi bi-patch-check-fill"></i> VERIFIED & SHARED</small>
+                            <div class="progress mt-1" style="height: 4px;">
+                                <div class="progress-bar bg-success" style="width: 100%"></div>
+                            </div>
+                        </div>
+
                         <div class="mt-2">
-                            <a href="{% url 'complete_transport' ride.pk %}" class="btn btn-sm btn-success">
+                            {% if ride.driver_name %}<small><i class="bi bi-person"></i> Driver: <strong>{{ ride.driver_name }}</strong></small><br>{% endif %}
+                            {% if ride.driver_phone %}<small><i class="bi bi-telephone"></i> Phone: <a href="tel:{{ ride.driver_phone }}">{{ ride.driver_phone }}</a></small><br>{% endif %}
+                            {% if ride.vehicle_color %}<small><i class="bi bi-palette"></i> Color: {{ ride.vehicle_color }}</small><br>{% endif %}
+                            {% if ride.vehicle_description %}<small><i class="bi bi-card-text"></i> {{ ride.vehicle_description }}</small><br>{% endif %}
+                            <small class="text-muted"><i class="bi bi-clock"></i> Started: {{ ride.started_at|date:"H:i" }} | Expected: {{ ride.expected_duration_minutes }} min</small>
+                        </div>
+                        
+                        <!-- Timer -->
+                        <div class="alert alert-warning small mt-2 mb-2 py-1 px-2">
+                            <i class="bi bi-alarm"></i> Auto-alert in <strong>{{ ride.expected_duration_minutes }} min</strong> if not marked complete
+                        </div>
+
+                        <div class="d-flex gap-2 mt-2">
+                            <a href="{% url 'complete_transport' ride.pk %}" class="btn btn-sm btn-success flex-fill">
                                 <i class="bi bi-check-circle"></i> Arrived Safely
+                            </a>
+                            <a href="{% url 'sos_page' %}" class="btn btn-sm btn-danger">
+                                <i class="bi bi-exclamation-triangle"></i> SOS
                             </a>
                         </div>
                     </div>
